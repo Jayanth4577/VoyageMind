@@ -261,18 +261,6 @@ npm run test
 
 CI runs automatically via GitHub Actions on every PR.
 
----
-
-## 👥 Team Structure (20-Day Sprint)
-
-- **👤 Member 1 – AI Engineer:** Nova prompt engineering, Orchestrator logic, Sub-agent creation
-- **👤 Member 2 – Backend Engineer:** Tool wrappers, API integration, Caching & DB
-- **👤 Member 3 – Frontend Engineer:** UI, Streaming integration, Visualization
-- **👤 Member 4 – Data Engineer:** Static datasets, Clustering logic, Geo optimizations
-- **👤 Member 5 – Cloud Engineer:** Terraform/CDK, IAM policies, Deployment
-- **👤 Member 6 – QA & Documentation:** Test cases, Edge cases, Documentation
-
----
 
 ## 📋 Development Guidelines
 
