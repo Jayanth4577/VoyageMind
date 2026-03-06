@@ -1,0 +1,132 @@
+[
+  {
+    "name": "Hôtel Le Marais",
+    "city": "Paris",
+    "destination": "Paris",
+    "price_per_night": 145,
+    "rating": 4.3,
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "amenities": ["wifi", "breakfast", "central location"]
+  },
+  {
+    "name": "Paris Budget Inn",
+    "city": "Paris",
+    "destination": "Paris",
+    "price_per_night": 85,
+    "rating": 3.6,
+    "latitude": 48.8700,
+    "longitude": 2.3450,
+    "amenities": ["wifi", "24hr desk"]
+  },
+  {
+    "name": "Grand Hôtel Saint-Germain",
+    "city": "Paris",
+    "destination": "Paris",
+    "price_per_night": 220,
+    "rating": 4.7,
+    "latitude": 48.8530,
+    "longitude": 2.3340,
+    "amenities": ["wifi", "breakfast", "pool", "spa", "restaurant"]
+  },
+  {
+    "name": "Montmartre View Hotel",
+    "city": "Paris",
+    "destination": "Paris",
+    "price_per_night": 120,
+    "rating": 4.1,
+    "latitude": 48.8850,
+    "longitude": 2.3410,
+    "amenities": ["wifi", "breakfast", "rooftop bar"]
+  },
+  {
+    "name": "Eiffel Economy Suites",
+    "city": "Paris",
+    "destination": "Paris",
+    "price_per_night": 98,
+    "rating": 3.8,
+    "latitude": 48.8560,
+    "longitude": 2.2980,
+    "amenities": ["wifi", "kitchen"]
+  },
+  {
+    "name": "The Westminster London",
+    "city": "London",
+    "destination": "London",
+    "price_per_night": 175,
+    "rating": 4.5,
+    "latitude": 51.5010,
+    "longitude": -0.1250,
+    "amenities": ["wifi", "breakfast", "gym", "central location"]
+  },
+  {
+    "name": "Shoreditch Budget Stay",
+    "city": "London",
+    "destination": "London",
+    "price_per_night": 90,
+    "rating": 3.7,
+    "latitude": 51.5230,
+    "longitude": -0.0770,
+    "amenities": ["wifi", "24hr desk"]
+  },
+  {
+    "name": "Kensington Grand",
+    "city": "London",
+    "destination": "London",
+    "price_per_night": 250,
+    "rating": 4.8,
+    "latitude": 51.4990,
+    "longitude": -0.1870,
+    "amenities": ["wifi", "breakfast", "pool", "spa", "restaurant", "parking"]
+  },
+  {
+    "name": "Camden Town Inn",
+    "city": "London",
+    "destination": "London",
+    "price_per_night": 105,
+    "rating": 4.0,
+    "latitude": 51.5390,
+    "longitude": -0.1426,
+    "amenities": ["wifi", "breakfast"]
+  },
+  {
+    "name": "Shinjuku Central Hotel",
+    "city": "Tokyo",
+    "destination": "Tokyo",
+    "price_per_night": 130,
+    "rating": 4.4,
+    "latitude": 35.6895,
+    "longitude": 139.6917,
+    "amenities": ["wifi", "onsen", "breakfast", "central location"]
+  },
+  {
+    "name": "Asakusa Budget Ryokan",
+    "city": "Tokyo",
+    "destination": "Tokyo",
+    "price_per_night": 65,
+    "rating": 4.0,
+    "latitude": 35.7120,
+    "longitude": 139.7960,
+    "amenities": ["wifi", "traditional breakfast"]
+  },
+  {
+    "name": "Ginza Luxury Suites",
+    "city": "Tokyo",
+    "destination": "Tokyo",
+    "price_per_night": 280,
+    "rating": 4.9,
+    "latitude": 35.6717,
+    "longitude": 139.7649,
+    "amenities": ["wifi", "breakfast", "pool", "spa", "restaurant", "concierge"]
+  },
+  {
+    "name": "Shibuya Crossing Hotel",
+    "city": "Tokyo",
+    "destination": "Tokyo",
+    "price_per_night": 110,
+    "rating": 4.2,
+    "latitude": 35.6580,
+    "longitude": 139.7016,
+    "amenities": ["wifi", "rooftop bar", "gym"]
+  }
+]
