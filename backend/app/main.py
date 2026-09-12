@@ -7,7 +7,16 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import agents, auth, budget, itinerary, optimization, trips, weather
+from app.api import (
+    agents,
+    auth,
+    budget,
+    copilot,
+    itinerary,
+    optimization,
+    trips,
+    weather,
+)
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.logging import configure_logging, get_logger, request_id_var
@@ -61,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(weather.router)
     app.include_router(optimization.router)
     app.include_router(agents.router)
+    app.include_router(copilot.router)
 
     @app.get("/health", tags=["health"])
     def health() -> dict:

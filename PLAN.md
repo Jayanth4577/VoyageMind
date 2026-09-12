@@ -66,28 +66,28 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 4.5 APIs: `POST /trips/{id}/optimize-route` (whole trip or `day_id`), `/optimize-budget`, `/check-weather` — all ownership-enforced
 - [x] 4.6 Unit tests: route optimization & heuristic fallback, weather thresholds (rain/heat/severe/unresolved), budget plan medians & coverage, date/time edge cases, currency rounding, API integration + cross-user denial (32 new tests)
 
-## Phase 5 — Agents & Orchestration
-- [ ] 5.1 Agent framework: base class + orchestrator loop (LLM decides → tools → backend validation → LLM final answer); structured data passed between agents
-- [ ] 5.2 `agents/master_agent.py`: intent understanding, constraint parsing, delegation, result combination, replanning triggers
-- [ ] 5.3 `agents/planner_agent.py`: end-to-end plan generation pipeline (constraints → transport → stays → places → weather → route → budget → daily itinerary → risks → contingencies)
-- [ ] 5.4 `agents/transport_agent.py`, `accommodation_agent.py`, `places_agent.py` (compare options; never invent prices/times)
-- [ ] 5.5 `agents/route_agent.py` + `budget_agent.py`: wrap Phase 4 services with LLM reasoning on top
-- [ ] 5.6 `agents/weather_risk_agent.py`: influences itinerary decisions — rain → reschedule/indoor swaps, heat → morning/evening split, severe weather → alternate day/location; clearly separates live data / forecast / inference / recommendation
-- [ ] 5.7 `agents/contingency_agent.py` (see Phase 6)
-- [ ] 5.8 Mode A API: `POST /trips/{id}/generate` — full AI auto-plan, editable afterwards
-- [ ] 5.9 Recommendation model + `GET /trips/{id}/recommendations`: name, cost, distance, duration, rating, weather suitability, category, reason, data source, confidence, one-click "Add to Day N"
-- [ ] 5.10 Integration tests: orchestration flows with mocked LLM + tools
+## Phase 5 — Agents & Orchestration ✅ (34/34 Phase 5 tests pass; full agent pipeline verified)
+- [x] 5.1 Agent framework: base class + orchestrator loop (LLM decides → tools → backend validation → LLM final answer); structured data passed between agents
+- [x] 5.2 `agents/master_agent.py`: intent understanding, constraint parsing, delegation, result combination, replanning triggers
+- [x] 5.3 `agents/planner_agent.py`: end-to-end plan generation pipeline (constraints → transport → stays → places → weather → route → budget → daily itinerary → risks → contingencies)
+- [x] 5.4 `agents/transport_agent.py`, `accommodation_agent.py`, `places_agent.py` (compare options; never invent prices/times)
+- [x] 5.5 `agents/route_agent.py` + `budget_agent.py`: wrap Phase 4 services with LLM reasoning on top
+- [x] 5.6 `agents/weather_risk_agent.py`: influences itinerary decisions — rain → reschedule/indoor swaps, heat → morning/evening split, severe weather → alternate day/location; clearly separates live data / forecast / inference / recommendation
+- [x] 5.7 `agents/contingency_agent.py` (structured decision tree generator)
+- [x] 5.8 Mode A API: `POST /trips/{id}/generate` — full AI auto-plan, editable afterwards
+- [x] 5.9 Recommendation model + `GET /trips/{id}/recommendations`: name, cost, distance, duration, rating, weather suitability, category, reason, data source, confidence, one-click "Add to Day N"
+- [x] 5.10 Integration tests: orchestration flows with mocked LLM + tools (34 tests)
 
-## Phase 6 — Agentic Features: Copilot, Contingency, What-If
-- [ ] 6.1 `POST /trips/{id}/copilot` + `copilot_messages` persistence; Copilot uses trip state + tools (handles "what after Baga?", "reduce cost ₹5,000", "indoor tonight", "is this realistic?", etc.)
-- [ ] 6.2 AI Copilot chat panel in frontend, context-aware to current trip
-- [ ] 6.3 Suggestion protocol: every AI change = structured proposal {problem, change, reason, impact} with Accept / Reject / Edit buttons — AI never silently mutates itinerary
-- [ ] 6.4 On accept: backend validates → update itinerary → recalc budget → recalc routes → recheck weather/conflicts (full cascade)
-- [ ] 6.5 Contingency Builder: structured decision-tree/graph (Plan A + B/C/D for weather / transport / accommodation), each node with trigger, condition, affected activities, fallback plan, budget & time impact, confidence, reason, approval requirement; stored in `contingencies`; explainable
-- [ ] 6.6 ContingencyTree visualization component
-- [ ] 6.7 Dynamic re-planning: detect changed conditions on re-check → propose re-plan via suggestion protocol
-- [ ] 6.8 What-if simulation `POST /trips/{id}/simulate`: flight delay / rain / budget change / fewer travelers / hotel unavailable / extra day — runs the same itinerary + tool infrastructure, shows impact chain + budget delta + contingency
-- [ ] 6.9 E2E tests for the two spec scenarios (generate→edit→weather→accept→recalc; custom itinerary→conflict→suggestion→accept)
+## Phase 6 — Agentic Features: Copilot, Contingency, What-If ✅ (25/25 Phase 6 tests pass; 154/154 total backend tests pass)
+- [x] 6.1 `POST /trips/{id}/copilot` + `copilot_messages` persistence; Copilot uses trip state + tools (handles "what after Baga?", "reduce cost ₹5,000", "indoor tonight", "is this realistic?", etc.)
+- [x] 6.2 AI Copilot chat panel in frontend, context-aware to current trip
+- [x] 6.3 Suggestion protocol: every AI change = structured proposal {problem, change, reason, impact} with Accept / Reject / Edit buttons — AI never silently mutates itinerary
+- [x] 6.4 On accept: backend validates → update itinerary → recalc budget → recalc routes → recheck weather/conflicts (full cascade)
+- [x] 6.5 Contingency Builder: structured decision-tree/graph (Plan A + B/C/D for weather / transport / accommodation), each node with trigger, condition, affected activities, fallback plan, budget & time impact, confidence, reason, approval requirement; stored in `contingencies`; explainable
+- [x] 6.6 ContingencyTree visualization component
+- [x] 6.7 Dynamic re-planning: detect changed conditions on re-check → propose re-plan via suggestion protocol
+- [x] 6.8 What-if simulation `POST /trips/{id}/simulate`: flight delay / rain / budget change / fewer travelers / hotel unavailable / extra day — runs the same itinerary + tool infrastructure, shows impact chain + budget delta + contingency
+- [x] 6.9 E2E tests for the two spec scenarios (generate→edit→weather→accept→recalc; custom itinerary→conflict→suggestion→accept)
 
 ## Phase 7 — Mode C polish, Group Travel, UX
 - [ ] 7.1 AI Assisted Builder: live conflict/feasibility detection as user edits, with reschedule suggestion cards

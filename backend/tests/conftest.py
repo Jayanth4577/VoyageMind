@@ -8,6 +8,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./test_voyagemind.db")
 import pytest
 from fastapi.testclient import TestClient
 
+from app import models  # noqa: F401 - register all ORM models
 from app.core.database import Base, engine
 from app.main import create_app
 
