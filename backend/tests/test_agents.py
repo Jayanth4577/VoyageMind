@@ -5,36 +5,37 @@ calls.  The mocking strategy follows the existing pattern:
   - LLM:  monkeypatch the provider's ``generate`` / ``generate_structured``
   - MCP:  monkeypatch ``travel_mcp.<facade>.<method>`` with AsyncMock
 """
+
 import json
 import os
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test_voyagemind.db")
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.agents.accommodation_agent import AccommodationAgent
 from app.agents.base_agent import BaseAgent
-from app.agents.context import AgentContext, AgentResult, LLMStepResponse, ToolDefinition
+from app.agents.budget_agent import BudgetAgent
+from app.agents.context import AgentContext, AgentResult, LLMStepResponse
+from app.agents.contingency_agent import ContingencyAgent
 from app.agents.master_agent import MasterAgent
+from app.agents.places_agent import PlacesAgent
 from app.agents.planner_agent import PlannerAgent
+from app.agents.route_agent import RouteAgent
 from app.agents.tools import TOOL_DEFINITIONS, execute_tool, tool_definitions_for
 from app.agents.transport_agent import TransportAgent
-from app.agents.accommodation_agent import AccommodationAgent
-from app.agents.places_agent import PlacesAgent
-from app.agents.route_agent import RouteAgent
-from app.agents.budget_agent import BudgetAgent
 from app.agents.weather_risk_agent import WeatherRiskAgent
-from app.agents.contingency_agent import ContingencyAgent
 from app.core.database import Base, engine
 from app.llm.provider import LLMError
 from app.main import create_app
 from app.schemas.agent_schema import GeneratedPlan
 
-
 # ── fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def db_tables():
@@ -108,6 +109,7 @@ def _sample_context(trip_id: str = "test-trip-id") -> AgentContext:
 
 # ── mock helpers ──────────────────────────────────────────────────────────────
 
+
 class FakeLLM:
     """LLM provider that returns predetermined JSON responses."""
 
@@ -123,7 +125,9 @@ class FakeLLM:
             self._call_idx += 1
             return json.dumps(r) if isinstance(r, dict) else r
         # Default: immediate done response
-        return json.dumps({"done": True, "tool_calls": [], "final_answer": {}, "reasoning": "default"})
+        return json.dumps(
+            {"done": True, "tool_calls": [], "final_answer": {}, "reasoning": "default"}
+        )
 
     async def generate_structured(self, prompt, schema, *, system=None, temperature=0.2):
         if self._call_idx < len(self._responses):
@@ -136,6 +140,7 @@ class FakeLLM:
 
 
 # ── 1. Tool registry & execution ─────────────────────────────────────────────
+
 
 class TestToolRegistry:
     def test_tool_definitions_exist(self):
@@ -180,6 +185,7 @@ class TestToolRegistry:
 
 # ── 2. Base agent orchestrator loop ──────────────────────────────────────────
 
+
 class ConcreteAgent(BaseAgent):
     name = "test_agent"
     description = "Test agent"
@@ -198,9 +204,11 @@ class TestBaseAgent:
     @pytest.mark.anyio
     async def test_immediate_done(self):
         """LLM returns done=True on first call → agent returns immediately."""
-        fake = FakeLLM([
-            {"done": True, "tool_calls": [], "final_answer": {"key": "val"}, "reasoning": "ok"},
-        ])
+        fake = FakeLLM(
+            [
+                {"done": True, "tool_calls": [], "final_answer": {"key": "val"}, "reasoning": "ok"},
+            ]
+        )
         agent = ConcreteAgent(llm=fake)
         result = await agent.run(_sample_context())
         assert result.status == "ok"
@@ -210,17 +218,32 @@ class TestBaseAgent:
     @pytest.mark.anyio
     async def test_tool_call_then_done(self, monkeypatch):
         """LLM requests a tool call, gets results, then produces final answer."""
-        mock_geo = AsyncMock(return_value={
-            "source": "mock", "results": [{"name": "Goa", "latitude": 15.3, "longitude": 74.1}]
-        })
+        mock_geo = AsyncMock(
+            return_value={
+                "source": "mock",
+                "results": [{"name": "Goa", "latitude": 15.3, "longitude": 74.1}],
+            }
+        )
         monkeypatch.setattr("app.agents.tools.travel_mcp.maps.geocode_place", mock_geo)
 
-        fake = FakeLLM([
-            # Step 1: request tool call
-            {"done": False, "tool_calls": [{"tool": "geocode_place", "arguments": {"name": "Goa"}}], "final_answer": {}, "reasoning": ""},
-            # Step 2: final answer using tool result
-            {"done": True, "tool_calls": [], "final_answer": {"lat": 15.3, "lng": 74.1}, "reasoning": "got coords"},
-        ])
+        fake = FakeLLM(
+            [
+                # Step 1: request tool call
+                {
+                    "done": False,
+                    "tool_calls": [{"tool": "geocode_place", "arguments": {"name": "Goa"}}],
+                    "final_answer": {},
+                    "reasoning": "",
+                },
+                # Step 2: final answer using tool result
+                {
+                    "done": True,
+                    "tool_calls": [],
+                    "final_answer": {"lat": 15.3, "lng": 74.1},
+                    "reasoning": "got coords",
+                },
+            ]
+        )
         agent = ConcreteAgent(llm=fake)
         result = await agent.run(_sample_context())
         assert result.status == "ok"
@@ -232,9 +255,12 @@ class TestBaseAgent:
     @pytest.mark.anyio
     async def test_max_iterations_reached(self):
         """Agent hits max_iterations without done=True → returns partial."""
-        fake = FakeLLM([
-            {"done": False, "tool_calls": [], "final_answer": {}, "reasoning": ""},
-        ] * 10)
+        fake = FakeLLM(
+            [
+                {"done": False, "tool_calls": [], "final_answer": {}, "reasoning": ""},
+            ]
+            * 10
+        )
         agent = ConcreteAgent(llm=fake)
         agent.max_iterations = 2
         result = await agent.run(_sample_context())
@@ -244,8 +270,10 @@ class TestBaseAgent:
     @pytest.mark.anyio
     async def test_llm_error_graceful_degradation(self):
         """LLM raises LLMError → agent returns error status."""
+
         class BrokenLLM:
             name = "broken"
+
             async def generate(self, *a, **k):
                 raise LLMError("API key invalid")
 
@@ -257,8 +285,10 @@ class TestBaseAgent:
     @pytest.mark.anyio
     async def test_malformed_llm_response(self):
         """LLM returns non-JSON → agent degrades gracefully."""
+
         class GarbledLLM:
             name = "garbled"
+
             async def generate(self, *a, **k):
                 return "This is not JSON at all, just plain text."
 
@@ -269,6 +299,7 @@ class TestBaseAgent:
 
 
 # ── 3. Master agent intent parsing ───────────────────────────────────────────
+
 
 class TestMasterAgent:
     @pytest.mark.anyio
@@ -283,13 +314,12 @@ class TestMasterAgent:
                 agent_name="PlannerAgent", status="ok", data={"plan": {}}, reasoning="done"
             )
             master = MasterAgent(llm=FakeLLM())
-            result = await master.run(ctx)
+            _ = await master.run(ctx)
             mock_run.assert_called_once()
 
     @pytest.mark.anyio
     async def test_generate_intent_parsed(self):
         """When request says 'generate', it delegates to PlannerAgent."""
-        from app.agents.master_agent import IntentSchema
 
         fake = FakeLLM([{"intent": "generate", "reasoning": "user wants a plan"}])
         ctx = _sample_context()
@@ -305,13 +335,19 @@ class TestMasterAgent:
     @pytest.mark.anyio
     async def test_check_weather_intent(self):
         """Weather intent delegates to WeatherRiskAgent."""
-        from app.agents.master_agent import IntentSchema
 
-        fake = FakeLLM([
-            {"intent": "check_weather", "reasoning": "check rain"},
-            # Response for the weather risk agent's own LLM call
-            {"done": True, "tool_calls": [], "final_answer": {"overall_risk_level": "low"}, "reasoning": "no risk"},
-        ])
+        fake = FakeLLM(
+            [
+                {"intent": "check_weather", "reasoning": "check rain"},
+                # Response for the weather risk agent's own LLM call
+                {
+                    "done": True,
+                    "tool_calls": [],
+                    "final_answer": {"overall_risk_level": "low"},
+                    "reasoning": "no risk",
+                },
+            ]
+        )
         ctx = _sample_context()
         master = MasterAgent(llm=fake)
         result = await master.run(ctx)
@@ -319,6 +355,7 @@ class TestMasterAgent:
 
 
 # ── 4. Domain agent construction ─────────────────────────────────────────────
+
 
 class TestDomainAgents:
     """Verify each domain agent is properly constructed."""
@@ -382,30 +419,60 @@ class TestDomainAgents:
 
 # ── 5. Transport agent with tool call ────────────────────────────────────────
 
+
 class TestTransportAgentRun:
     @pytest.mark.anyio
     async def test_transport_agent_calls_tool(self, monkeypatch):
-        mock_transport = AsyncMock(return_value={
-            "source": "demo", "is_mock": True,
-            "offers": [
-                {"kind": "flight", "provider": "IndiGo", "price": 4500, "currency": "INR",
-                 "duration_minutes": 75, "departure_at": "08:00", "arrival_at": "09:15"},
-            ],
-        })
+        mock_transport = AsyncMock(
+            return_value={
+                "source": "demo",
+                "is_mock": True,
+                "offers": [
+                    {
+                        "kind": "flight",
+                        "provider": "IndiGo",
+                        "price": 4500,
+                        "currency": "INR",
+                        "duration_minutes": 75,
+                        "departure_at": "08:00",
+                        "arrival_at": "09:15",
+                    },
+                ],
+            }
+        )
         monkeypatch.setattr("app.agents.tools.travel_mcp.flights.search_transport", mock_transport)
 
-        fake = FakeLLM([
-            # Step 1: request transport search
-            {"done": False, "tool_calls": [
-                {"tool": "search_transport", "arguments": {"origin": "Bengaluru", "destination": "Goa", "date": "2026-10-01"}}
-            ], "final_answer": {}, "reasoning": ""},
-            # Step 2: final answer with ranked options
-            {"done": True, "tool_calls": [], "final_answer": {
-                "options": [{"kind": "flight", "provider": "IndiGo", "price": 4500}],
-                "recommendation": "IndiGo flight",
-                "reasoning": "Cheapest and fastest"
-            }, "reasoning": "ranked by price"},
-        ])
+        fake = FakeLLM(
+            [
+                # Step 1: request transport search
+                {
+                    "done": False,
+                    "tool_calls": [
+                        {
+                            "tool": "search_transport",
+                            "arguments": {
+                                "origin": "Bengaluru",
+                                "destination": "Goa",
+                                "date": "2026-10-01",
+                            },
+                        }
+                    ],
+                    "final_answer": {},
+                    "reasoning": "",
+                },
+                # Step 2: final answer with ranked options
+                {
+                    "done": True,
+                    "tool_calls": [],
+                    "final_answer": {
+                        "options": [{"kind": "flight", "provider": "IndiGo", "price": 4500}],
+                        "recommendation": "IndiGo flight",
+                        "reasoning": "Cheapest and fastest",
+                    },
+                    "reasoning": "ranked by price",
+                },
+            ]
+        )
         agent = TransportAgent(llm=fake)
         result = await agent.run(_sample_context())
         assert result.status == "ok"
@@ -414,35 +481,75 @@ class TestTransportAgentRun:
 
 # ── 6. Weather risk agent ────────────────────────────────────────────────────
 
+
 class TestWeatherRiskAgentRun:
     @pytest.mark.anyio
     async def test_rain_risk_detected(self, monkeypatch):
-        mock_wx = AsyncMock(return_value={
-            "source": "open-meteo", "is_mock": False,
-            "daily": [
-                {"date": "2026-10-01", "rain_probability": 80, "precipitation_mm": 12, "temp_max_c": 30},
-                {"date": "2026-10-02", "rain_probability": 10, "precipitation_mm": 0, "temp_max_c": 32},
-            ],
-        })
+        mock_wx = AsyncMock(
+            return_value={
+                "source": "open-meteo",
+                "is_mock": False,
+                "daily": [
+                    {
+                        "date": "2026-10-01",
+                        "rain_probability": 80,
+                        "precipitation_mm": 12,
+                        "temp_max_c": 30,
+                    },
+                    {
+                        "date": "2026-10-02",
+                        "rain_probability": 10,
+                        "precipitation_mm": 0,
+                        "temp_max_c": 32,
+                    },
+                ],
+            }
+        )
         monkeypatch.setattr("app.agents.tools.travel_mcp.weather.get_weather", mock_wx)
 
-        fake = FakeLLM([
-            # Step 1: request weather tool
-            {"done": False, "tool_calls": [
-                {"tool": "get_weather", "arguments": {"latitude": 15.3, "longitude": 74.1, "days": 5}}
-            ], "final_answer": {}, "reasoning": ""},
-            # Step 2: analyze results
-            {"done": True, "tool_calls": [], "final_answer": {
-                "days_at_risk": [
-                    {"day_number": 1, "risk": "rain", "reasons": ["80% rain prob", "12mm precip"],
-                     "affected_activities": ["Beach"], "suggestions": [
-                        {"type": "swap_indoor", "activity": "Beach", "alternative": "Museum", "reason": "heavy rain", "confidence": "0.9"}
-                    ]}
-                ],
-                "overall_risk_level": "moderate",
-                "reasoning": "Day 1 has heavy rain"
-            }, "reasoning": "rain on day 1"},
-        ])
+        fake = FakeLLM(
+            [
+                # Step 1: request weather tool
+                {
+                    "done": False,
+                    "tool_calls": [
+                        {
+                            "tool": "get_weather",
+                            "arguments": {"latitude": 15.3, "longitude": 74.1, "days": 5},
+                        }
+                    ],
+                    "final_answer": {},
+                    "reasoning": "",
+                },
+                # Step 2: analyze results
+                {
+                    "done": True,
+                    "tool_calls": [],
+                    "final_answer": {
+                        "days_at_risk": [
+                            {
+                                "day_number": 1,
+                                "risk": "rain",
+                                "reasons": ["80% rain prob", "12mm precip"],
+                                "affected_activities": ["Beach"],
+                                "suggestions": [
+                                    {
+                                        "type": "swap_indoor",
+                                        "activity": "Beach",
+                                        "alternative": "Museum",
+                                        "reason": "heavy rain",
+                                        "confidence": "0.9",
+                                    }
+                                ],
+                            }
+                        ],
+                        "overall_risk_level": "moderate",
+                        "reasoning": "Day 1 has heavy rain",
+                    },
+                    "reasoning": "rain on day 1",
+                },
+            ]
+        )
         agent = WeatherRiskAgent(llm=fake)
         result = await agent.run(_sample_context())
         assert result.status == "ok"
@@ -451,41 +558,52 @@ class TestWeatherRiskAgentRun:
 
 # ── 7. Planner pipeline ─────────────────────────────────────────────────────
 
+
 class TestPlannerPipeline:
     @pytest.mark.anyio
     async def test_planner_produces_plan(self, monkeypatch):
         """Mock all sub-agents, verify planner assembles a GeneratedPlan."""
         mock_plan = GeneratedPlan(
-            days=[{
-                "day_number": 1,
-                "title": "Arrival Day",
-                "activities": [{
-                    "name": "Baga Beach",
-                    "category": "BEACH",
-                    "location_name": "Baga Beach, Goa",
-                    "latitude": 15.5553,
-                    "longitude": 73.7514,
-                    "start_time": "10:00",
-                    "end_time": "12:00",
-                    "duration_minutes": 120,
-                    "estimated_cost": 0,
-                    "weather_sensitive": True,
-                    "indoor": False,
-                    "reason": "Popular beach",
-                    "confidence": 0.9,
-                }],
-                "notes": "Relax after travel",
-            }],
+            days=[
+                {
+                    "day_number": 1,
+                    "title": "Arrival Day",
+                    "activities": [
+                        {
+                            "name": "Baga Beach",
+                            "category": "BEACH",
+                            "location_name": "Baga Beach, Goa",
+                            "latitude": 15.5553,
+                            "longitude": 73.7514,
+                            "start_time": "10:00",
+                            "end_time": "12:00",
+                            "duration_minutes": 120,
+                            "estimated_cost": 0,
+                            "weather_sensitive": True,
+                            "indoor": False,
+                            "reason": "Popular beach",
+                            "confidence": 0.9,
+                        }
+                    ],
+                    "notes": "Relax after travel",
+                }
+            ],
             reasoning="Test plan",
         )
 
         # Mock each sub-agent's run method
         for agent_cls in [TransportAgent, AccommodationAgent, PlacesAgent, WeatherRiskAgent]:
             monkeypatch.setattr(
-                agent_cls, "run",
-                AsyncMock(return_value=AgentResult(
-                    agent_name=agent_cls.name, status="ok", data={"test": True}, reasoning="mocked"
-                ))
+                agent_cls,
+                "run",
+                AsyncMock(
+                    return_value=AgentResult(
+                        agent_name=agent_cls.name,
+                        status="ok",
+                        data={"test": True},
+                        reasoning="mocked",
+                    )
+                ),
             )
 
         # Mock the LLM's generate_structured for the assembly step
@@ -500,6 +618,7 @@ class TestPlannerPipeline:
 
 
 # ── 8. Generate API endpoint ────────────────────────────────────────────────
+
 
 class TestGenerateAPI:
     def test_generate_endpoint_exists(self, client):
@@ -568,6 +687,7 @@ class TestGenerateAPI:
         class MockMasterAgent:
             def __init__(self, **kwargs):
                 pass
+
             async def run(self, context):
                 return mock_result
 
@@ -582,9 +702,7 @@ class TestGenerateAPI:
 
         # Verify activities were persisted
         itin = client.get(f"/trips/{trip_id}/itinerary", headers=headers).json()
-        day1_activities = [
-            a for d in itin["days"] if d["day_number"] == 1 for a in d["activities"]
-        ]
+        day1_activities = [a for d in itin["days"] if d["day_number"] == 1 for a in d["activities"]]
         assert len(day1_activities) == 2
         names = {a["name"] for a in day1_activities}
         assert "Baga Beach" in names
@@ -613,7 +731,9 @@ class TestGenerateAPI:
 
         # Register a second user
         client.post("/auth/register", json={"email": "other@test.com", "password": "pw12345678"})
-        resp = client.post("/auth/login", json={"email": "other@test.com", "password": "pw12345678"})
+        resp = client.post(
+            "/auth/login", json={"email": "other@test.com", "password": "pw12345678"}
+        )
         headers2 = {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
         resp = client.post(f"/trips/{trip_id}/generate", headers=headers2)
@@ -621,6 +741,7 @@ class TestGenerateAPI:
 
 
 # ── 9. Recommendations API ──────────────────────────────────────────────────
+
 
 class TestRecommendationsAPI:
     def test_recommendations_empty(self, client):
@@ -636,6 +757,7 @@ class TestRecommendationsAPI:
 
 
 # ── 10. Context & schema models ─────────────────────────────────────────────
+
 
 class TestSchemas:
     def test_agent_context_defaults(self):

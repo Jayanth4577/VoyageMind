@@ -1,4 +1,5 @@
 """Trip CRUD with per-user ownership (spec §24)."""
+
 from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, status
@@ -64,9 +65,7 @@ def get_trip(trip_id: str, user: CurrentUser, db: DbSession) -> Trip:
 
 
 @router.put("/{trip_id}", response_model=TripOut)
-def update_trip(
-    trip_id: str, body: TripUpdate, user: CurrentUser, db: DbSession
-) -> Trip:
+def update_trip(trip_id: str, body: TripUpdate, user: CurrentUser, db: DbSession) -> Trip:
     trip = _owned_trip(trip_id, user, db)
     changes = body.model_dump(exclude_unset=True)
     for field, value in changes.items():

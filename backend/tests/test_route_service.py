@@ -1,4 +1,5 @@
 """RouteService tests — ordering reports with real-coordinate fake routing data."""
+
 from datetime import date
 from unittest.mock import AsyncMock
 

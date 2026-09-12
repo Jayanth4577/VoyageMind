@@ -4,6 +4,7 @@ Travel times come from real routing data (Maps MCP / OSRM). The optimization is
 a report + suggested order; the USER applies it via the reorder endpoint —
 the service never silently reorders the itinerary (spec §16).
 """
+
 from sqlalchemy.orm import Session
 
 from app.mcp.travel_mcp import travel_mcp
@@ -29,10 +30,7 @@ async def day_route_report(db: Session, trip: Trip, day: ItineraryDay) -> dict:
             "message": "At least 2 located activities are needed to evaluate a route",
         }
 
-    points = [
-        {"latitude": a.latitude, "longitude": a.longitude, "activity_id": a.id}
-        for a in acts
-    ]
+    points = [{"latitude": a.latitude, "longitude": a.longitude, "activity_id": a.id} for a in acts]
     current = await travel_mcp.maps.calculate_route(points)
     optimized = await travel_mcp.maps.optimize_route(points)
 
@@ -66,9 +64,7 @@ async def itinerary_route_report(db: Session, trip: Trip) -> dict:
     reports = []
     for day in sorted(trip.days, key=lambda d: d.day_number):
         reports.append(await day_route_report(db, trip, day))
-    total_saved = sum(
-        r.get("saved_minutes", 0) for r in reports if r.get("status") == "ok"
-    )
+    total_saved = sum(r.get("saved_minutes", 0) for r in reports if r.get("status") == "ok")
     optimizable = [r for r in reports if r.get("status") == "ok"]
     return {
         "trip_id": trip.id,

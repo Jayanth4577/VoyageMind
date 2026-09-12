@@ -3,6 +3,7 @@
 Usage: `from app.mcp.travel_mcp import travel_mcp` then
 `await travel_mcp.weather.get_weather(...)`.
 """
+
 from dataclasses import dataclass
 
 from app.mcp.client import TravelMCPClient

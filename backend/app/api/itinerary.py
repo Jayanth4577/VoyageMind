@@ -1,4 +1,5 @@
 """Itinerary + activity endpoints (spec §24)."""
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -28,9 +29,7 @@ def get_itinerary(trip_id: str, user: CurrentUser, db: DbSession) -> ItineraryOu
     response_model=ActivityOut,
     status_code=status.HTTP_201_CREATED,
 )
-def add_activity(
-    trip_id: str, body: ActivityCreate, user: CurrentUser, db: DbSession
-) -> Activity:
+def add_activity(trip_id: str, body: ActivityCreate, user: CurrentUser, db: DbSession) -> Activity:
     trip = _load(db, trip_id, user)
     return itinerary_service.add_activity(db, trip, body)
 
@@ -56,9 +55,7 @@ class MoveIn(BaseModel):
 
 
 @router.post("/activities/{activity_id}/move", response_model=ActivityOut)
-def move_activity(
-    activity_id: str, body: MoveIn, user: CurrentUser, db: DbSession
-) -> Activity:
+def move_activity(activity_id: str, body: MoveIn, user: CurrentUser, db: DbSession) -> Activity:
     trip = _find_trip_by_activity(db, activity_id, user)
     return itinerary_service.move_activity(
         db, trip, activity_id, body.target_day_id, body.start_time, body.end_time

@@ -3,6 +3,7 @@
 Sync SQLAlchemy 2.0 style; PostgreSQL in production, SQLite fallback for
 local tests so the suite runs without external infrastructure.
 """
+
 from collections.abc import Generator
 
 from sqlalchemy import create_engine

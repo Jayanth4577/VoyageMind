@@ -1,4 +1,5 @@
 """Provider factory — the only place that knows which provider is active."""
+
 from app.core.config import settings
 from app.llm.gemini_provider import GeminiProvider
 from app.llm.nova_provider import NovaProvider

@@ -1,4 +1,5 @@
 """Transport/stays/FX/web-search facade: short TTLs for volatile prices."""
+
 from app.core import redis_client
 from app.mcp import mock_fallbacks
 from app.mcp.client import TravelMCPClient
@@ -53,9 +54,7 @@ class FlightMCP:
         cached = await redis_client.cache_get_json(key)
         if cached is not None:
             return {**cached, "cached": True}
-        live = await self.client().call_tool(
-            "get_exchange_rate", {"base": base, "target": target}
-        )
+        live = await self.client().call_tool("get_exchange_rate", {"base": base, "target": target})
         if _usable(live):
             if not live.get("is_mock"):
                 await redis_client.cache_set_json(key, live, TTL_FX)

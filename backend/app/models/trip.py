@@ -1,4 +1,5 @@
 """Trip aggregate: core trip inputs + per-traveler group preferences."""
+
 from __future__ import annotations
 
 from datetime import date

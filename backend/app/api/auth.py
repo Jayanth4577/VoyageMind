@@ -1,4 +1,5 @@
 """Auth routes: register, login, me."""
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select

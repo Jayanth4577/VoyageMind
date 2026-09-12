@@ -1,4 +1,5 @@
 """Shared model mixins: string UUID PKs + timestamps (cross-DB friendly)."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

@@ -1,4 +1,5 @@
 """OpenAI-compatible adapter (works with OpenAI and compatible gateways)."""
+
 import httpx
 
 from app.llm.provider import LLMError, LLMProvider, T

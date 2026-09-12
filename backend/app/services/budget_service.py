@@ -2,6 +2,7 @@
 
 The LLM may reason about the results but never performs this arithmetic.
 """
+
 from sqlalchemy.orm import Session
 
 from app.models import Activity, BudgetItem, Trip

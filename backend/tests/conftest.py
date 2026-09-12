@@ -1,4 +1,5 @@
 """Test fixtures: isolated SQLite DB per test, no external services required."""
+
 import os
 
 os.environ.setdefault("ENVIRONMENT", "test")

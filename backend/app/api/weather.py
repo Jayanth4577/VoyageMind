@@ -1,4 +1,5 @@
 """Weather endpoints (spec §24). Data flows through the Travel MCP facades."""
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession

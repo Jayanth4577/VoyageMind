@@ -1,4 +1,5 @@
 """Budget endpoints (spec §7/§24). All math lives in BudgetService."""
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DbSession

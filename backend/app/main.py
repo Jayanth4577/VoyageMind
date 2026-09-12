@@ -1,4 +1,5 @@
 """VoyageMind FastAPI application entrypoint."""
+
 from contextlib import asynccontextmanager
 from uuid import uuid4
 

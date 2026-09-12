@@ -4,20 +4,20 @@ Endpoints:
     POST /trips/{trip_id}/generate     — Full AI auto-plan (Mode A)
     GET  /trips/{trip_id}/recommendations — AI recommendations
 """
+
 from fastapi import APIRouter
 
-from app.api.deps import CurrentUser, DbSession
 from app.agents.context import AgentContext
 from app.agents.master_agent import MasterAgent
+from app.api.deps import CurrentUser, DbSession
 from app.core.logging import get_logger
 from app.models import Recommendation, TripEvent
 from app.schemas.activity_schema import ActivityCreate
 from app.schemas.agent_schema import (
+    GeneratedActivity,
+    GeneratedPlan,
     GenerateRequest,
     GenerateResponse,
-    GeneratedActivity,
-    GeneratedDay,
-    GeneratedPlan,
     RecommendationOut,
 )
 from app.services import itinerary_service
@@ -56,9 +56,7 @@ def _build_context(trip, body: GenerateRequest | None) -> AgentContext:
 
     preferences = body.preferences if body else {}
     if body and body.constraints:
-        trip_data["constraints"] = (
-            f"{trip_data.get('constraints', '')} {body.constraints}".strip()
-        )
+        trip_data["constraints"] = f"{trip_data.get('constraints', '')} {body.constraints}".strip()
 
     return AgentContext(
         trip_id=trip.id,
@@ -149,7 +147,9 @@ async def generate_plan(
                 except Exception as exc:  # noqa: BLE001
                     logger.warning(
                         "Failed to persist activity %s on day %s: %s",
-                        act.name, gen_day.day_number, exc,
+                        act.name,
+                        gen_day.day_number,
+                        exc,
                     )
 
     # Audit event
@@ -195,12 +195,8 @@ def _safe_list(value) -> list[dict]:
 
 
 @router.get("/{trip_id}/recommendations")
-def get_recommendations(
-    trip_id: str, user: CurrentUser, db: DbSession
-) -> list[RecommendationOut]:
+def get_recommendations(trip_id: str, user: CurrentUser, db: DbSession) -> list[RecommendationOut]:
     """Get AI recommendations for a trip."""
     trip = get_owned_trip(db, trip_id, user)
-    recs = (
-        db.query(Recommendation).filter(Recommendation.trip_id == trip.id).all()
-    )
+    recs = db.query(Recommendation).filter(Recommendation.trip_id == trip.id).all()
     return [RecommendationOut.model_validate(r) for r in recs]

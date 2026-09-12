@@ -1,4 +1,5 @@
 """Weather endpoint: geocode write-back + graceful failures (spec §24/§31)."""
+
 import uuid
 
 
@@ -33,9 +34,7 @@ def patch_facade(monkeypatch, geo, wx):
 
 def test_weather_with_preset_coordinates(client, monkeypatch):
     headers = auth_headers(client)
-    trip = make_trip(
-        client, headers, destination_lat=15.3, destination_lng=74.1
-    )
+    trip = make_trip(client, headers, destination_lat=15.3, destination_lng=74.1)
     patch_facade(
         monkeypatch,
         geo={"source": "test", "results": []},

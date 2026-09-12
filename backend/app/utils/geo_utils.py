@@ -1,4 +1,5 @@
 """Geo helpers. Rough distance only — real routing comes from Maps MCP (Phase 3/4)."""
+
 from math import asin, cos, radians, sin, sqrt
 
 

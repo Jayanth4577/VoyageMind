@@ -1,4 +1,5 @@
 """Ollama adapter for local/self-hosted models (dev-friendly, no API key)."""
+
 import httpx
 
 from app.llm.provider import LLMError, LLMProvider, T

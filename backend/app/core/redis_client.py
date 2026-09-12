@@ -4,6 +4,7 @@ Redis is an optimization, never a hard dependency: on connection failure the
 helpers no-op (return miss / skip write) and the caller falls back to live APIs
 or labeled mock data (spec §25/§26).
 """
+
 import json
 import logging
 from typing import Any

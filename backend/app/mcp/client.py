@@ -3,6 +3,7 @@
 Speaks the MCP streamable-HTTP protocol. Every failure degrades to a structured
 "unavailable" response so callers can fall back to cache/mock (spec §25).
 """
+
 import json
 
 from mcp import ClientSession

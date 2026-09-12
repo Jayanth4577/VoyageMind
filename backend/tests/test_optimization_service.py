@@ -1,4 +1,5 @@
 """OptimizationService budget plan — deterministic savings candidates (spec §7)."""
+
 from datetime import date
 
 from app.core.database import SessionLocal

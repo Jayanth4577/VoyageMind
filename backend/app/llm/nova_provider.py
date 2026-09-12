@@ -4,6 +4,7 @@ Nova is delivered via Amazon Bedrock. The adapter slot exists so plugging it in
 later requires zero application rewrites — implement `generate` /
 `generate_structured` against the Bedrock Converse API.
 """
+
 from app.llm.provider import LLMError, LLMProvider, T
 
 

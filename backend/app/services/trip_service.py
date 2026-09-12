@@ -1,4 +1,5 @@
 """TripService — shared trip loading, ownership enforcement, coordinate resolution."""
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload

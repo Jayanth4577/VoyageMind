@@ -1,4 +1,5 @@
 """AI recommendations with reason + source transparency (spec §17, §31)."""
+
 from __future__ import annotations
 
 from sqlalchemy import Float, ForeignKey, Integer, String

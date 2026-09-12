@@ -1,4 +1,5 @@
 """Budget contracts. Arithmetic lives in BudgetService (Phase 2) — schemas only."""
+
 from __future__ import annotations
 
 from datetime import datetime

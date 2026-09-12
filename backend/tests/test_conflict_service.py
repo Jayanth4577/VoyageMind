@@ -1,4 +1,5 @@
 """ConflictService unit tests — overlap / invalid time / tight transfer."""
+
 from datetime import date
 
 from app.core.database import SessionLocal

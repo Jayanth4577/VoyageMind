@@ -38,14 +38,10 @@ def test_login_wrong_password_401(client):
 
 def test_me_requires_token(client):
     assert client.get("/auth/me").status_code == 401
-    assert (
-        client.get("/auth/me", headers={"Authorization": "Bearer garbage"}).status_code == 401
-    )
+    assert client.get("/auth/me", headers={"Authorization": "Bearer garbage"}).status_code == 401
 
 
 @pytest.mark.parametrize("bad_email", ["not-an-email", ""])
 def test_register_invalid_email_422(client, bad_email):
-    res = client.post(
-        "/auth/register", json={"email": bad_email, "password": "supersecret1"}
-    )
+    res = client.post("/auth/register", json={"email": bad_email, "password": "supersecret1"})
     assert res.status_code == 422

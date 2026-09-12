@@ -3,6 +3,7 @@
 Used when the MCP gateway or its providers are unreachable. Every payload is
 unmistakably marked (spec §25: never mislead the user with fake data).
 """
+
 from datetime import UTC, datetime
 
 from app.utils.geo_utils import haversine_km
@@ -66,10 +67,7 @@ def mock_route(points: list[dict]) -> dict:
     total_km = round(sum(leg["distance_km"] for leg in legs), 1)
     return {
         **_meta(),
-        "note": (
-            "DEMO DATA — straight-line distance at an assumed 40 km/h "
-            "(gateway unavailable)"
-        ),
+        "note": ("DEMO DATA — straight-line distance at an assumed 40 km/h (gateway unavailable)"),
         "distance_km": total_km,
         "duration_minutes": round(sum(leg["duration_minutes"] for leg in legs)),
         "legs": legs,

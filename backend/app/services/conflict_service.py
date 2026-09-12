@@ -4,6 +4,7 @@ Checks run on real itinerary data only. Transfer feasibility is a labeled
 heuristic until Maps MCP routing data is wired in Phase 4; it never claims a
 real travel time.
 """
+
 from dataclasses import dataclass, field
 
 from sqlalchemy.orm import Session

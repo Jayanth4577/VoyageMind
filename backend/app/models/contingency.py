@@ -1,4 +1,5 @@
 """Contingency plans as structured decision-tree nodes (spec §6) — not prose."""
+
 from __future__ import annotations
 
 from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String

@@ -2,6 +2,7 @@
 
 Token claims carry the user id; route-level authorization is enforced in deps.
 """
+
 from datetime import UTC, datetime, timedelta
 
 import bcrypt
@@ -22,9 +23,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def create_access_token(subject: str, expires_minutes: int | None = None) -> str:
-    expire = datetime.now(UTC) + timedelta(
-        minutes=expires_minutes or settings.jwt_expire_minutes
-    )
+    expire = datetime.now(UTC) + timedelta(minutes=expires_minutes or settings.jwt_expire_minutes)
     payload = {"sub": subject, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

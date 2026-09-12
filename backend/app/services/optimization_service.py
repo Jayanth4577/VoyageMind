@@ -3,6 +3,7 @@
 All computations are deterministic backend logic. Budget savings candidates are
 derived from real budget lines via same-category medians; nothing is invented.
 """
+
 from statistics import median
 
 from sqlalchemy.orm import Session

@@ -1,4 +1,5 @@
 """WeatherService tests — deterministic thresholds (spec §5)."""
+
 from datetime import date
 from unittest.mock import AsyncMock
 
@@ -10,9 +11,7 @@ from app.models import Activity, ItineraryDay, Trip, User
 from app.services import weather_service
 
 
-def day_forecast(
-    d, rain_prob=0, precip=0.0, temp_max=28.0, significant=False
-):
+def day_forecast(d, rain_prob=0, precip=0.0, temp_max=28.0, significant=False):
     return {
         "date": d,
         "rain_probability": rain_prob,
@@ -60,9 +59,7 @@ def seed(db, activity_specs):
 def patch_forecast(monkeypatch, daily, alerts=None):
     payload = {"source": "open-meteo", "is_mock": False, "daily": daily}
     payload["alerts"] = alerts or []
-    monkeypatch.setattr(
-        tm.travel_mcp.weather, "get_weather", AsyncMock(return_value=payload)
-    )
+    monkeypatch.setattr(tm.travel_mcp.weather, "get_weather", AsyncMock(return_value=payload))
 
 
 @pytest.mark.anyio

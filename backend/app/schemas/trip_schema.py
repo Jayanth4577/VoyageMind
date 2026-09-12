@@ -1,4 +1,5 @@
 """Trip contracts — the primary user inputs (spec §1)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -56,9 +57,7 @@ class TripUpdate(BaseModel):
     trip_style: str | None = Field(default=None, max_length=50)
     constraints: str | None = Field(default=None, max_length=2000)
     preferences: dict[str, Any] | None = None
-    status: str | None = Field(
-        default=None, pattern="^(draft|planning|confirmed|completed)$"
-    )
+    status: str | None = Field(default=None, pattern="^(draft|planning|confirmed|completed)$")
 
 
 class TripOut(TripBase):

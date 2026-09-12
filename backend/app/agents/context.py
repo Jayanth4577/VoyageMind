@@ -4,6 +4,7 @@ AgentContext carries the trip state into every agent run; AgentResult carries
 structured output + tool trace back out.  All inter-agent communication uses
 these Pydantic models so the data is always validated and serialisable.
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, Field

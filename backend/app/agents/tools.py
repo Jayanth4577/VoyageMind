@@ -5,6 +5,7 @@ The registry provides JSON-schema definitions so the LLM can request tool
 calls, and an executor that dispatches by name and catches all exceptions into
 structured error responses (spec §25 resilience contract).
 """
+
 from __future__ import annotations
 
 import time
@@ -12,13 +13,6 @@ import time
 from app.agents.context import ToolDefinition, ToolTrace
 from app.core.logging import get_logger
 from app.mcp.travel_mcp import travel_mcp
-from app.services import (
-    budget_service,
-    conflict_service,
-    optimization_service,
-    route_service,
-    weather_service,
-)
 
 logger = get_logger(__name__)
 
@@ -128,7 +122,9 @@ TOOL_DEFINITIONS: list[ToolDefinition] = [
     ),
     ToolDefinition(
         name="search_transport",
-        description="Search for transport options (flights, trains, buses) between two cities on a date.",
+        description=(
+            "Search for transport options (flights, trains, buses) between two cities on a date."
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -232,9 +228,7 @@ async def _dispatch(name: str, args: dict) -> dict:
         case "optimize_route":
             return await travel_mcp.maps.optimize_route(args["points"])
         case "search_places":
-            return await travel_mcp.maps.search_places(
-                args["query"], count=args.get("count", 5)
-            )
+            return await travel_mcp.maps.search_places(args["query"], count=args.get("count", 5))
         case "find_nearby_places":
             return await travel_mcp.maps.find_nearby_places(
                 latitude=args["latitude"],

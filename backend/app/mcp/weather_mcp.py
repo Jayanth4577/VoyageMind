@@ -1,4 +1,5 @@
 """Weather facade: Redis cache (30 min) -> MCP gateway -> labeled mock."""
+
 from app.core import redis_client
 from app.mcp import mock_fallbacks
 from app.mcp.client import TravelMCPClient

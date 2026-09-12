@@ -1,4 +1,5 @@
 """Facade tests: cache behavior + fallback to labeled mocks (spec §25/§26/§3.10)."""
+
 import pytest
 
 from app.core import redis_client
@@ -102,9 +103,7 @@ async def test_route_live_and_fallback(mem_cache):
 
     mem_cache.clear()  # drop the cached live result so the next call must hit its client
 
-    failing = MapsMCP(
-        client=FakeClient({"calculate_route": {"status": "error", "error": "x"}})
-    )
+    failing = MapsMCP(client=FakeClient({"calculate_route": {"status": "error", "error": "x"}}))
     out2 = await failing.calculate_route(pts)
     assert out2["is_mock"] is True
     assert out2["distance_km"] > 0

@@ -1,4 +1,5 @@
 """FastAPI dependencies: DB session + authenticated user (Annotated style)."""
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status

@@ -1,4 +1,5 @@
 """All ORM models. Importing this package registers every mapper."""
+
 from __future__ import annotations
 
 from app.models.budget import BudgetItem

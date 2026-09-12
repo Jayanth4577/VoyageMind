@@ -1,4 +1,5 @@
 """Audit trail (spec §28 observability: approvals, rejections, agent runs) + copilot chat."""
+
 from __future__ import annotations
 
 from sqlalchemy import JSON, ForeignKey, String, Text

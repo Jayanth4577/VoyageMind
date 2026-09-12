@@ -1,4 +1,5 @@
 """Maps facade: geocoding, routing, optimization, places — cached with long TTLs."""
+
 from app.core import redis_client
 from app.mcp import mock_fallbacks
 from app.mcp.client import TravelMCPClient

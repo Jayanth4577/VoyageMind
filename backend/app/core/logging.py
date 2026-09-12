@@ -3,6 +3,7 @@
 Every log line is JSON and carries request_id, agent, and tool context when set,
 per the observability requirements (spec §28). Secrets are never logged here.
 """
+
 import contextvars
 import json
 import logging

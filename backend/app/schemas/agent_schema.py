@@ -1,12 +1,16 @@
 """Schemas for agent API endpoints."""
 
-from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class GenerateRequest(BaseModel):
     """Optional preferences override for plan generation."""
+
     preferences: dict = Field(default_factory=dict)
     constraints: str = ""
+
 
 class GeneratedActivity(BaseModel):
     name: str
@@ -23,15 +27,18 @@ class GeneratedActivity(BaseModel):
     reason: str = ""
     confidence: float = 0.5
 
+
 class GeneratedDay(BaseModel):
     day_number: int
     title: str = ""
     activities: list[GeneratedActivity] = []
     notes: str = ""
 
+
 class GeneratedPlan(BaseModel):
     days: list[GeneratedDay] = []
     reasoning: str = ""
+
 
 class GenerateResponse(BaseModel):
     trip_id: str
@@ -45,6 +52,7 @@ class GenerateResponse(BaseModel):
     contingencies: list[dict] = []
     tool_calls_count: int = 0
     reasoning: str = ""
+
 
 class RecommendationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

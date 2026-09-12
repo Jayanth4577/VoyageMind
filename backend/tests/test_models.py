@@ -1,4 +1,5 @@
 """Model-level checks: relationships, JSON fields, cascade behavior."""
+
 from datetime import date
 
 from app.core.database import SessionLocal
@@ -42,11 +43,7 @@ def make_user_with_trip(db) -> tuple[User, Trip]:
         meta={"external_place_id": "osm:123"},
     )
     db.add(activity)
-    db.add(
-        BudgetItem(
-            trip_id=trip.id, category="accommodation", label="Hotel", amount=12000
-        )
-    )
+    db.add(BudgetItem(trip_id=trip.id, category="accommodation", label="Hotel", amount=12000))
     db.add(
         Contingency(
             trip_id=trip.id,

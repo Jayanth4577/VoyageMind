@@ -4,6 +4,7 @@ Thresholds turn real forecast data into per-day risks and affected activities.
 Suggestions are rule-based text, clearly separate from the forecast itself;
 the Weather/Risk Agent (Phase 5) reasons on top of this structured report.
 """
+
 from sqlalchemy.orm import Session
 
 from app.mcp.travel_mcp import travel_mcp
@@ -61,11 +62,7 @@ def _assess_day(day: ItineraryDay, forecast_day: dict | None, has_alerts: bool) 
 
     affected_ids = []
     if risk != "none":
-        affected_ids = [
-            a.id
-            for a in day.activities
-            if a.weather_sensitive and not a.indoor
-        ]
+        affected_ids = [a.id for a in day.activities if a.weather_sensitive and not a.indoor]
 
     return {
         "day_id": day.id,

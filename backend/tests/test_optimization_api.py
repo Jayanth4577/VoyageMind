@@ -1,4 +1,5 @@
 """Optimization endpoint tests: ownership, route reports, budget plan, weather check."""
+
 import uuid
 from unittest.mock import AsyncMock
 
@@ -29,8 +30,12 @@ def seed_activity(trip_id, day_id, name, lat, lng):
     db = SessionLocal()
     try:
         act = Activity(
-            trip_id=trip_id, day_id=day_id, name=name, position=0,
-            latitude=lat, longitude=lng,
+            trip_id=trip_id,
+            day_id=day_id,
+            name=name,
+            position=0,
+            latitude=lat,
+            longitude=lng,
         )
         db.add(act)
         db.commit()
@@ -46,13 +51,13 @@ def test_optimize_route_endpoint(client, monkeypatch):
     seed_activity(trip["id"], trip["days"][0]["id"], "B", 15.29, 73.96)
 
     monkeypatch.setattr(
-        tm.travel_mcp.maps, "calculate_route",
-        AsyncMock(
-            return_value={"source": "osrm", "is_mock": False, "duration_minutes": 120}
-        ),
+        tm.travel_mcp.maps,
+        "calculate_route",
+        AsyncMock(return_value={"source": "osrm", "is_mock": False, "duration_minutes": 120}),
     )
     monkeypatch.setattr(
-        tm.travel_mcp.maps, "optimize_route",
+        tm.travel_mcp.maps,
+        "optimize_route",
         AsyncMock(
             return_value={
                 "source": "osrm",

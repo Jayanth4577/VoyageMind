@@ -1,4 +1,5 @@
 """Activity contracts — mirrors the spec's structured activity JSON (spec §2B)."""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,4 +1,5 @@
 """Cached weather snapshots with source transparency (who/when/mock)."""
+
 from __future__ import annotations
 
 from sqlalchemy import JSON, Boolean, Float, ForeignKey, String

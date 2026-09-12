@@ -1,4 +1,5 @@
 """Datetime + currency util edge cases (spec §4.4/§4.6)."""
+
 import pytest
 
 from app.utils.currency_utils import allocate_budget, convert_amount

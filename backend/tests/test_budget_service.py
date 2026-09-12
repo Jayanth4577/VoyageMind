@@ -1,4 +1,5 @@
 """BudgetService unit tests — deterministic arithmetic (spec §7)."""
+
 from datetime import date
 
 from app.core.database import SessionLocal

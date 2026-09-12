@@ -1,4 +1,5 @@
 """Budget line items — deterministic totals are computed in BudgetService, never by the LLM."""
+
 from __future__ import annotations
 
 from sqlalchemy import Float, ForeignKey, String

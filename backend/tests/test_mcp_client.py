@@ -4,6 +4,7 @@ Runs the actual Travel MCP Gateway (demo mode) under uvicorn on an ephemeral
 port and exercises the backend's TravelMCPClient through the wire format.
 Skipped when the travel-mcp-server package is not installed.
 """
+
 import asyncio
 
 import pytest

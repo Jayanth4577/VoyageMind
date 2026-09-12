@@ -13,6 +13,7 @@ which may contain tool call requests (the framework executes them) or a final
 answer.  This avoids depending on native function-calling support from every
 provider.
 """
+
 from __future__ import annotations
 
 import json
@@ -97,15 +98,14 @@ class BaseAgent(ABC):
                     for tc in step.tool_calls:
                         trace = await execute_tool(tc.tool, tc.arguments)
                         all_traces.append(trace)
-                        tool_results.append(
-                            {"tool": tc.tool, "result": trace.result}
-                        )
+                        tool_results.append({"tool": tc.tool, "result": trace.result})
                     conversation.append(
-                        {"role": "assistant", "tool_calls": [tc.model_dump() for tc in step.tool_calls]}
+                        {
+                            "role": "assistant",
+                            "tool_calls": [tc.model_dump() for tc in step.tool_calls],
+                        }
                     )
-                    conversation.append(
-                        {"role": "tool_results", "results": tool_results}
-                    )
+                    conversation.append({"role": "tool_results", "results": tool_results})
                     continue
 
                 if step.done or iteration == self.max_iterations - 1:
@@ -173,11 +173,14 @@ class BaseAgent(ABC):
                         # Truncate very large results to avoid context overflow
                         if len(result_str) > 3000:
                             result_str = result_str[:3000] + "\n... (truncated)"
-                        parts.append(f"\n### Tool Result: {r.get('tool')}\n```json\n{result_str}\n```")
+                        parts.append(
+                            f"\n### Tool Result: {r.get('tool')}\n```json\n{result_str}\n```"
+                        )
                 elif role == "assistant":
                     calls = msg.get("tool_calls", [])
+                    calls_str = json.dumps(calls, indent=2)
                     parts.append(
-                        f"\n### Your Previous Tool Requests\n```json\n{json.dumps(calls, indent=2)}\n```"
+                        f"\n### Your Previous Tool Requests\n```json\n{calls_str}\n```"
                     )
 
         remaining = self.max_iterations - iteration - 1
@@ -186,12 +189,12 @@ class BaseAgent(ABC):
             f"You have {remaining} iteration(s) remaining. "
             "Respond with a JSON object following this schema:\n"
             "```json\n"
-            '{\n'
+            "{\n"
             '  "done": false,\n'
             '  "tool_calls": [{"tool": "tool_name", "arguments": {...}}],\n'
             '  "final_answer": {},\n'
             '  "reasoning": ""\n'
-            '}\n'
+            "}\n"
             "```\n"
             "Set `done: true` when you have enough information to provide your "
             "final structured answer. Tool calls and final answer are mutually "

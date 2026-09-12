@@ -1,4 +1,5 @@
 """Transport options and accommodations — raw search results kept for comparison (spec §4)."""
+
 from __future__ import annotations
 
 from datetime import date

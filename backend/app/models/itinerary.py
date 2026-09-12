@@ -1,4 +1,5 @@
 """Itinerary days + activities — the structured heart of the workspace (spec §2B, §15)."""
+
 from __future__ import annotations
 
 from datetime import date as _date

@@ -3,6 +3,7 @@
 The API layer calls these functions; agents must use them too (in Phase 5) so
 every mutation stays validated and budget-consistent.
 """
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 

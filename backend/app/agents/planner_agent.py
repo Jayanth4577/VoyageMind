@@ -9,6 +9,7 @@ Orchestrates the full trip planning pipeline:
 
 The LLM NEVER invents data — it selects and arranges from tool results.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,10 +31,10 @@ RULES:
 - ONLY use activities, costs, and locations from the provided tool data.
 - NEVER invent prices, coordinates, ratings, or durations.
 - Assign start_time / end_time as "HH:MM" 24h strings. Leave empty ("") if uncertain.
-- Set duration_minutes from the source data or a reasonable estimate (60-120 min for typical activities).
+- Set duration_minutes from source data or reasonable estimate (60-120 min for typical activities).
 - Set weather_sensitive=true and indoor=false for outdoor activities (beaches, hikes, etc).
 - Set indoor=true for museums, restaurants, shopping.
-- Distribute activities across days sensibly — morning sightseeing, midday food, afternoon activities, evening dining.
+- Distribute activities sensibly — morning sightseeing, midday food, evening dining.
 - On rainy days (from weather data), prefer indoor activities.
 - Keep per-day activities to 3-5 for a comfortable pace (or more for adventure style).
 - Respond ONLY with valid JSON matching the GeneratedPlan schema.
@@ -65,21 +66,27 @@ class PlannerAgent:
             all_traces.extend(transport_res.tool_calls)
 
             # Step 2: Search accommodation
-            enriched = context.model_copy(update={"prior_results": {**context.prior_results, **results}})
+            enriched = context.model_copy(
+                update={"prior_results": {**context.prior_results, **results}}
+            )
             acc_agent = AccommodationAgent(llm=self._llm)
             acc_res = await acc_agent.run(enriched)
             results["accommodation"] = acc_res.data
             all_traces.extend(acc_res.tool_calls)
 
             # Step 3: Find places / activities
-            enriched = context.model_copy(update={"prior_results": {**context.prior_results, **results}})
+            enriched = context.model_copy(
+                update={"prior_results": {**context.prior_results, **results}}
+            )
             places_agent = PlacesAgent(llm=self._llm)
             places_res = await places_agent.run(enriched)
             results["places"] = places_res.data
             all_traces.extend(places_res.tool_calls)
 
             # Step 4: Check weather
-            enriched = context.model_copy(update={"prior_results": {**context.prior_results, **results}})
+            enriched = context.model_copy(
+                update={"prior_results": {**context.prior_results, **results}}
+            )
             weather_agent = WeatherRiskAgent(llm=self._llm)
             weather_res = await weather_agent.run(enriched)
             results["weather"] = weather_res.data
@@ -130,12 +137,12 @@ class PlannerAgent:
 Assemble a {n_days}-day daily itinerary for this trip.
 
 ## Trip Details
-- Origin: {trip.get('origin_name', 'N/A')}
-- Destination: {trip.get('destination_name', 'N/A')}
-- Travelers: {trip.get('num_travelers', 1)}
-- Budget: {trip.get('total_budget', 'not set')} {trip.get('currency', 'INR')}
-- Style: {trip.get('trip_style', 'mixed')}
-- Constraints: {trip.get('constraints', 'none')}
+- Origin: {trip.get("origin_name", "N/A")}
+- Destination: {trip.get("destination_name", "N/A")}
+- Travelers: {trip.get("num_travelers", 1)}
+- Budget: {trip.get("total_budget", "not set")} {trip.get("currency", "INR")}
+- Style: {trip.get("trip_style", "mixed")}
+- Constraints: {trip.get("constraints", "none")}
 
 ## Available Places & Activities (from tool searches)
 {places_str}
@@ -180,7 +187,9 @@ Generate days 1 through {n_days}. Use ONLY the places and data provided above.
 """
 
         try:
-            return await self._llm.generate_structured(prompt, GeneratedPlan, system=ASSEMBLY_SYSTEM)
+            return await self._llm.generate_structured(
+                prompt, GeneratedPlan, system=ASSEMBLY_SYSTEM
+            )
         except LLMError as exc:
             logger.error("Failed to assemble itinerary: %s", exc)
             return GeneratedPlan(days=[], reasoning=f"Assembly failed: {exc}")

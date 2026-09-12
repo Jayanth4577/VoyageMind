@@ -1,4 +1,5 @@
 """Itinerary + budget API integration tests (spec §24 endpoints)."""
+
 import uuid
 
 
@@ -35,9 +36,7 @@ def add_activity(client, headers, trip, day, **overrides):
         "weather_sensitive": True,
     }
     payload.update(overrides)
-    return client.post(
-        f"/trips/{trip['id']}/activities", json=payload, headers=headers
-    )
+    return client.post(f"/trips/{trip['id']}/activities", json=payload, headers=headers)
 
 
 def test_add_activity_and_derive_end_time(client):
@@ -75,7 +74,12 @@ def test_activity_cost_flows_into_budget(client):
     day = trip["days"][0]
 
     created = add_activity(
-        client, headers, trip, day, name="Dinner", category="RESTAURANT",
+        client,
+        headers,
+        trip,
+        day,
+        name="Dinner",
+        category="RESTAURANT",
         estimated_cost=1200,
     ).json()
     budget = client.get(f"/trips/{trip['id']}/budget", headers=headers).json()
@@ -84,9 +88,7 @@ def test_activity_cost_flows_into_budget(client):
     assert budget["state"] == "under"
 
     # updating cost updates the mirrored budget line
-    client.put(
-        f"/activities/{created['id']}", json={"estimated_cost": 1500}, headers=headers
-    )
+    client.put(f"/activities/{created['id']}", json={"estimated_cost": 1500}, headers=headers)
     budget = client.get(f"/trips/{trip['id']}/budget", headers=headers).json()
     assert budget["spent"] == 1500
 
@@ -101,10 +103,8 @@ def test_activity_category_maps_to_budget_category(client):
     trip = make_trip(client, headers)
     day = trip["days"][0]
 
-    add_activity(client, headers, trip, day, name="Taxi", category="TRANSPORT",
-                 estimated_cost=300)
-    add_activity(client, headers, trip, day, name="Museum", category="MUSEUM",
-                 estimated_cost=200)
+    add_activity(client, headers, trip, day, name="Taxi", category="TRANSPORT", estimated_cost=300)
+    add_activity(client, headers, trip, day, name="Museum", category="MUSEUM", estimated_cost=200)
     budget = client.get(f"/trips/{trip['id']}/budget", headers=headers).json()
     assert budget["by_category"] == {"activities": 200.0, "local_transport": 300.0}
 
@@ -203,9 +203,7 @@ def test_cross_user_access_denied(client):
         ).status_code
         == 404
     )
-    assert (
-        client.get(f"/trips/{trip['id']}/budget", headers=headers_b).status_code == 404
-    )
+    assert client.get(f"/trips/{trip['id']}/budget", headers=headers_b).status_code == 404
 
 
 def test_invalid_activity_times_422(client):

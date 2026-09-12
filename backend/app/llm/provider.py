@@ -4,6 +4,7 @@ The application depends only on this interface. Providers are selected via
 LLM_PROVIDER config; adding Amazon Nova later must not require app rewrites.
 Providers do reasoning only — never arithmetic or live-data invention.
 """
+
 import json
 import re
 from abc import ABC, abstractmethod

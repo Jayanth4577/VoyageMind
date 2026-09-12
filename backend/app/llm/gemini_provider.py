@@ -1,4 +1,5 @@
 """Google Gemini adapter (REST, no extra SDK dependency)."""
+
 import httpx
 
 from app.llm.provider import LLMError, LLMProvider, T
