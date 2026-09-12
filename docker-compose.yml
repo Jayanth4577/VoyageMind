@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-voyage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voyage}
+      POSTGRES_DB: ${POSTGRES_DB:-voyagemind}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-voyage}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mcp-server:
+    build: ./travel-mcp-server
+    environment:
+      MCP_PORT: 8001
+      OPEN_METEO_BASE_URL: ${OPEN_METEO_BASE_URL:-https://api.open-meteo.com/v1}
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      DUFFEL_API_KEY: ${DUFFEL_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      TRAVEL_MCP_DEMO_MODE: ${TRAVEL_MCP_DEMO_MODE:-}
+    ports:
+      - "8001:8001"
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-voyage}:${POSTGRES_PASSWORD:-voyage}@postgres:5432/${POSTGRES_DB:-voyagemind}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      TRAVEL_MCP_URL: http://mcp-server:8001
+      CORS_ORIGINS: '["http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

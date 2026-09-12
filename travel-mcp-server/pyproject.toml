@@ -1,0 +1,27 @@
+[project]
+name = "voyagemind-travel-mcp"
+version = "0.1.0"
+description = "VoyageMind custom Travel MCP Gateway - domain tools over external APIs"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.0",
+    "httpx>=0.27",
+    "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "ruff>=0.5",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["travel_mcp*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
