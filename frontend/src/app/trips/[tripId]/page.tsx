@@ -1,184 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import AICopilot from "@/components/AICopilot/AICopilot";
-import BudgetDashboard from "@/components/BudgetDashboard/BudgetDashboard";
-import ContingencyTree from "@/components/ContingencyTree/ContingencyTree";
-import GroupPanel from "@/components/GroupPanel/GroupPanel";
-import ItineraryBuilder from "@/components/ItineraryBuilder/ItineraryBuilder";
-import RisksPanel from "@/components/RisksPanel/RisksPanel";
-import TripMap from "@/components/Map/TripMap";
-import WeatherPanel from "@/components/WeatherPanel/WeatherPanel";
-import { copilotApi } from "@/services/copilot";
+import { use } from "react";
+import { useEffect, useState } from "react";
 import { getToken } from "@/services/api";
 import { tripsApi } from "@/services/trips";
 import { formatMoney, type Trip } from "@/types";
 
-type Tab = "itinerary" | "copilot" | "budget" | "weather" | "map" | "risks" | "contingencies" | "group";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "itinerary", label: "📅 Itinerary" },
-  { id: "copilot", label: "🤖 Copilot" },
-  { id: "budget", label: "💰 Budget" },
-  { id: "weather", label: "🌦 Weather" },
-  { id: "map", label: "🗺 Map" },
-  { id: "risks", label: "⚠️ Risks & Simulate" },
-  { id: "contingencies", label: "🌳 Contingencies" },
-  { id: "group", label: "👥 Group" },
+const OPTIONS = [
+  { seg: "itinerary", label: "Itinerary Builder", icon: "📅", text: "Drag-and-drop days with live conflict checks" },
+  { seg: "copilot", label: "AI Copilot", icon: "🤖", text: "Ask anything; approve every change" },
+  { seg: "budget", label: "Budget", icon: "💰", text: "Deterministic totals by category" },
+  { seg: "analysis", label: "Spending analysis", icon: "📊", text: "Where the money goes, per day" },
+  { seg: "weather", label: "Weather", icon: "🌦️", text: "Forecasts and activity risk flags" },
+  { seg: "map", label: "Map", icon: "🗺️", text: "Every pinned stop, color-coded by day" },
+  { seg: "risks", label: "Risks & Simulate", icon: "⚠️", text: "Schedule risks and what-if scenarios" },
+  { seg: "contingencies", label: "Contingencies", icon: "🌳", text: "Structured fallback plans" },
+  { seg: "group", label: "Group preferences", icon: "👥", text: "Balance interests across travelers" },
 ];
 
-export default function TripWorkspacePage() {
-  const { tripId } = useParams<{ tripId: string }>();
-  const router = useRouter();
+export default function TripOverviewPage({
+  params,
+}: {
+  params: Promise<{ tripId: string }>;
+}) {
+  const { tripId } = use(params);
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [tab, setTab] = useState<Tab>("itinerary");
   const [error, setError] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [itineraryKey, setItineraryKey] = useState(0);
-  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
-
-  const loadTrip = useCallback(async () => {
-    try {
-      setTrip(await tripsApi.get(tripId));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load trip");
-    }
-  }, [tripId]);
 
   useEffect(() => {
-    if (!getToken()) {
-      router.push("/login");
-      return;
-    }
+    if (!getToken()) return;
     let active = true;
-    (async () => {
-      try {
-        const t = await tripsApi.get(tripId);
-        if (active) setTrip(t);
-      } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : "Failed to load trip");
-      }
-    })();
+    tripsApi
+      .get(tripId)
+      .then((t) => active && setTrip(t))
+      .catch((e) => active && setError(e instanceof Error ? e.message : "Failed to load"));
     return () => {
       active = false;
     };
-  }, [tripId, router, itineraryKey]);
+  }, [tripId]);
 
-  const refreshItinerary = useCallback(() => {
-    setItineraryKey((k) => k + 1);
-    void loadTrip();
-  }, [loadTrip]);
+  if (error) return <main className="p-8 text-danger">{error}</main>;
+  if (!trip) return <main className="p-8 text-inksoft">Loading trip…</main>;
 
-  async function generatePlan() {
-    setGenerating(true);
-    setError("");
-    try {
-      const res = await copilotApi.generate(tripId);
-      refreshItinerary();
-      if (res.status === "error") setError(res.reasoning || "AI planning failed");
-      else setTab("itinerary");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "AI planning failed");
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  function askAiToFix(dayNumbers: number[]) {
-    const dayText =
-      dayNumbers.length === 1 ? `Day ${dayNumbers[0]}` : `days ${dayNumbers.join(", ")}`;
-    setPendingPrompt(
-      `Schedule conflicts detected on ${dayText}. Propose a realistic reschedule (times and travel time between places) as a suggestion I can accept.`,
-    );
-    setTab("copilot");
-  }
-
-  if (error && !trip)
-    return <main className="p-6 text-red-700">{error}</main>;
-  if (!trip) return <main className="p-6 text-slate-500">Loading trip…</main>;
-
+  const activityCount = trip.days.reduce((n, d) => n + d.activities.length, 0);
   const interests = (trip.preferences.interests as string[] | undefined) ?? [];
 
   return (
-    <main className="mx-auto max-w-6xl p-6">
-      <header className="mb-5 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link href="/trips" className="text-sm text-slate-500 hover:text-slate-800">
-            ← All trips
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs uppercase tracking-wide text-slate-500">
-              {trip.days.some((d) => d.activities.length > 0)
-                ? "Mode A/B · AI + Custom"
-                : "Mode B · Build My Own"}
-            </span>
-            <button
-              onClick={generatePlan}
-              disabled={generating}
-              className="rounded-md bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-              title="Mode A: generate a complete AI itinerary"
+    <main className="mx-auto max-w-5xl p-5 md:p-8">
+      <p className="text-xs font-semibold tracking-wide text-primary uppercase">Trip overview</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">
+        {trip.title || trip.destination_name}
+      </h1>
+      <p className="mt-1 text-sm text-inksoft">
+        {trip.origin_name ? `${trip.origin_name} → ` : ""}
+        {trip.destination_name} · {trip.start_date} to {trip.end_date} · {trip.num_travelers}{" "}
+        traveler{trip.num_travelers > 1 ? "s" : ""}
+        {trip.total_budget
+          ? ` · ${formatMoney(trip.total_budget, trip.currency)} budget`
+          : ""}
+      </p>
+      {interests.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {interests.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-primarysoft px-2.5 py-0.5 text-xs font-medium text-primary"
             >
-              {generating ? "🤖 Planning…" : "🤖 AI Plan (Mode A)"}
-            </button>
-          </div>
+              {tag}
+            </span>
+          ))}
         </div>
-        <h1 className="text-2xl font-bold text-slate-800">
-          {trip.title || trip.destination_name}
-        </h1>
-        <p className="text-sm text-slate-500">
-          {trip.origin_name ? `${trip.origin_name} → ` : ""}
-          {trip.destination_name} · {trip.start_date} to {trip.end_date} · {trip.num_travelers}{" "}
-          traveler{trip.num_travelers > 1 ? "s" : ""}
-          {trip.total_budget ? ` · ${formatMoney(trip.total_budget, trip.currency)}` : ""}
-        </p>
-        {interests.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {interests.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700"
-              >
-                {tag}
-              </span>
-            ))}
+      )}
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        {[
+          ["Days", String(trip.days.length)],
+          ["Activities", String(activityCount)],
+          ["Status", trip.status],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-2xl border border-line bg-surface p-4">
+            <p className="text-xs font-medium tracking-wide text-inksoft uppercase">{label}</p>
+            <p className="mt-1 text-xl font-bold capitalize">{value}</p>
           </div>
-        )}
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-      </header>
-
-      <nav className="mb-4 flex flex-wrap gap-1 rounded-lg bg-slate-100 p-1 text-sm">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`rounded-md px-3 py-2 font-medium transition ${
-              tab === id ? "bg-white text-slate-800 shadow" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {label}
-          </button>
         ))}
-      </nav>
+      </div>
 
-      {tab === "itinerary" && (
-        <ItineraryBuilder key={itineraryKey} tripId={trip.id} onAskAi={askAiToFix} />
-      )}
-      {tab === "copilot" && (
-        <AICopilot
-          tripId={trip.id}
-          pendingPrompt={pendingPrompt}
-          onPromptConsumed={() => setPendingPrompt(null)}
-          onItineraryChanged={refreshItinerary}
-        />
-      )}
-      {tab === "budget" && <BudgetDashboard tripId={trip.id} />}
-      {tab === "weather" && <WeatherPanel tripId={trip.id} />}
-      {tab === "map" && <TripMap tripId={trip.id} />}
-      {tab === "risks" && <RisksPanel tripId={trip.id} />}
-      {tab === "contingencies" && <ContingencyTree tripId={trip.id} />}
-      {tab === "group" && <GroupPanel tripId={trip.id} />}
+      <h2 className="mt-8 text-lg font-semibold">What can you do in this trip?</h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {OPTIONS.map((o) => (
+          <Link
+            key={o.seg}
+            href={`/trips/${tripId}/${o.seg}`}
+            className="rounded-2xl border border-line bg-surface p-4 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+          >
+            <span className="text-xl">{o.icon}</span>
+            <p className="mt-2 text-sm font-semibold">{o.label}</p>
+            <p className="mt-0.5 text-xs text-inksoft">{o.text}</p>
+          </Link>
+        ))}
+      </div>
     </main>
   );
 }

@@ -101,20 +101,20 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Itinerary Builder</h2>
+        <h2 className="text-lg font-semibold text-ink">Itinerary Builder</h2>
         <div className="flex items-center gap-3 text-sm">
           {conflictCount > 0 && (
-            <span className="rounded-full bg-red-100 px-3 py-1 text-red-700">
+            <span className="rounded-full bg-dangersoft px-3 py-1 text-danger">
               ✕ {conflictCount} conflict{conflictCount > 1 ? "s" : ""}
             </span>
           )}
           {warningCount > 0 && (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-amber-700">
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-warn">
               ⚠ {warningCount} warning{warningCount > 1 ? "s" : ""}
             </span>
           )}
           {conflictCount === 0 && warningCount === 0 && !busy && (
-            <span className="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
+            <span className="rounded-full bg-primarysoft px-3 py-1 text-primary">
               ✓ Schedule looks valid
             </span>
           )}
@@ -122,18 +122,18 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+        <p className="rounded-lg bg-dangersoft p-3 text-sm text-danger" role="alert">
           {error}
         </p>
       )}
 
       {issues.length > 0 && (
-        <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+        <div className="rounded-lg border border-line bg-surface p-3 text-sm">
           <ul className="space-y-1">
             {issues.map((issue, i) => (
               <li
                 key={i}
-                className={issue.severity === "conflict" ? "text-red-700" : "text-amber-700"}
+                className={issue.severity === "conflict" ? "text-danger" : "text-warn"}
               >
                 {issue.severity === "conflict" ? "✕" : "⚠"} Day {issue.day_number}: {issue.message}
               </li>
@@ -152,7 +152,7 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
                   ),
                 )
               }
-              className="mt-2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+              className="mt-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
             >
               🤖 Ask AI to fix this
             </button>
@@ -161,7 +161,7 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
       )}
 
       {busy ? (
-        <p className="text-sm text-slate-500">Loading itinerary…</p>
+        <p className="text-sm text-inksoft">Loading itinerary…</p>
       ) : (
         <Timeline
           days={days}

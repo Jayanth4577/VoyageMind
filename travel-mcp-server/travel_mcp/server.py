@@ -8,6 +8,14 @@ Tools return a `meta` block ({source, retrieved_at, is_mock}) on every response
 for source transparency. Set TRAVEL_MCP_DEMO_MODE=1 to serve labeled synthetic
 data without any external calls (demo/CI mode).
 """
+
+try:  # load travel-mcp-server/.env so keys can simply be pasted into the file
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover - dotenv is an optional convenience
+    pass
+
 from mcp.server.mcpserver import MCPServer
 from starlette.responses import JSONResponse
 

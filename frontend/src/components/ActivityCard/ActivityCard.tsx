@@ -4,12 +4,12 @@ import type { Activity } from "@/types";
 import { formatMoney } from "@/types";
 
 const CATEGORY_STYLES: Record<string, string> = {
-  BEACH: "bg-sky-50 text-sky-700 border-sky-200",
-  RESTAURANT: "bg-amber-50 text-amber-700 border-amber-200",
-  CAFE: "bg-amber-50 text-amber-700 border-amber-200",
-  MUSEUM: "bg-violet-50 text-violet-700 border-violet-200",
-  TRANSPORT: "bg-slate-100 text-slate-700 border-slate-300",
-  FREE_TIME: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  BEACH: "bg-accentsoft text-accent border-line",
+  RESTAURANT: "bg-warnsoft text-warn border-line",
+  CAFE: "bg-warnsoft text-warn border-line",
+  MUSEUM: "bg-primarysoft text-primary border-line",
+  TRANSPORT: "bg-surface2 text-ink border-line",
+  FREE_TIME: "bg-primarysoft text-primary border-line",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -43,7 +43,7 @@ export default function ActivityCard({
 }: Props) {
   const hasConflict = conflictIds?.has(activity.id);
   const hasWarning = warningIds?.has(activity.id);
-  const style = CATEGORY_STYLES[activity.category] ?? "bg-white border-slate-200";
+  const style = CATEGORY_STYLES[activity.category] ?? "bg-surface border-line";
 
   return (
     <div
@@ -56,14 +56,14 @@ export default function ActivityCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 text-xs text-inksoft">
             {activity.start_time && (
-              <span className="font-mono font-semibold text-slate-700">
+              <span className="font-mono font-semibold text-ink">
                 {activity.start_time}
                 {activity.end_time ? `–${activity.end_time}` : ""}
               </span>
             )}
-            <span className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[10px] uppercase tracking-wide">
+            <span className="rounded border border-line bg-surface px-1 py-0.5 text-[10px] uppercase tracking-wide">
               {CATEGORY_ICONS[activity.category] ?? "📍"} {activity.category}
             </span>
             {activity.source === "ai" && <span title="AI recommended">🤖</span>}
@@ -75,15 +75,15 @@ export default function ActivityCard({
             {hasConflict && <span title="Schedule conflict">✕</span>}
             {hasWarning && !hasConflict && <span title="Possible issue">⚠</span>}
           </div>
-          <p className="mt-1 truncate text-sm font-medium text-slate-800">{activity.name}</p>
+          <p className="mt-1 truncate text-sm font-medium text-ink">{activity.name}</p>
           {activity.location_name && (
-            <p className="truncate text-xs text-slate-500">{activity.location_name}</p>
+            <p className="truncate text-xs text-inksoft">{activity.location_name}</p>
           )}
         </div>
         {onDelete && (
           <button
             onClick={() => onDelete(activity.id)}
-            className="opacity-0 transition group-hover:opacity-100 text-slate-400 hover:text-red-500"
+            className="opacity-0 transition group-hover:opacity-100 text-inksoft/80 hover:text-danger"
             title="Delete activity"
           >
             ✕

@@ -89,18 +89,18 @@ export default function Timeline({
             onDrop={() => handleDrop(day)}
             className={`flex w-72 shrink-0 flex-col rounded-xl border p-3 ${
               dropTarget?.dayId === day.id
-                ? "border-blue-400 bg-blue-50/50"
-                : "border-slate-200 bg-slate-50"
+                ? "border-primary bg-primarysoft"
+                : "border-line bg-surface2"
             }`}
           >
             <header className="mb-3 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800">
+                <h3 className="font-semibold text-ink">
                   Day {day.day_number} {hasConflict && <span title="Conflicts found">✕</span>}
                   {!hasConflict && dayIssues.length > 0 && <span title="Warnings">⚠</span>}
                 </h3>
                 {day.date && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-inksoft">
                     {new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
                       weekday: "short",
                       month: "short",
@@ -111,7 +111,7 @@ export default function Timeline({
               </div>
               <button
                 onClick={() => onAddActivity(day.id)}
-                className="rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+                className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-white hover:bg-primary"
               >
                 + Add
               </button>
@@ -119,10 +119,10 @@ export default function Timeline({
 
             <div className="flex flex-1 flex-col gap-2">
               {isDropRow && dragging && (
-                <div className="h-1.5 rounded bg-blue-400" aria-hidden />
+                <div className="h-1.5 rounded bg-primary" aria-hidden />
               )}
               {day.activities.length === 0 && (
-                <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-xs text-slate-400">
+                <p className="rounded-lg border border-dashed border-line p-4 text-center text-xs text-inksoft/80">
                   Drop activities here
                 </p>
               )}
@@ -131,7 +131,7 @@ export default function Timeline({
                   dropTarget?.dayId === day.id && dropTarget.beforeId === activity.id;
                 return (
                   <div key={activity.id}>
-                    {isBefore && dragging && <div className="mb-2 h-1.5 rounded bg-blue-400" aria-hidden />}
+                    {isBefore && dragging && <div className="mb-2 h-1.5 rounded bg-primary" aria-hidden />}
                     <ActivityCard
                       activity={activity}
                       conflictIds={conflictIds}

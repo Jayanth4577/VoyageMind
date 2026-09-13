@@ -60,12 +60,12 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-800">⚠️ Schedule risks</h2>
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <h2 className="text-lg font-semibold text-ink">⚠️ Schedule risks</h2>
         {conflicts === null ? (
-          <p className="text-sm text-slate-500">Checking…</p>
+          <p className="text-sm text-inksoft">Checking…</p>
         ) : !hasConflicts ? (
-          <p className="mt-2 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          <p className="mt-2 rounded-lg bg-primarysoft p-3 text-sm text-primary">
             ✓ No schedule conflicts detected.
           </p>
         ) : (
@@ -73,7 +73,7 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
             {conflicts.map((issue, i) => (
               <li
                 key={i}
-                className={issue.severity === "conflict" ? "text-red-700" : "text-amber-700"}
+                className={issue.severity === "conflict" ? "text-danger" : "text-warn"}
               >
                 {issue.severity === "conflict" ? "✕" : "⚠"} Day {issue.day_number}: {issue.message}
               </li>
@@ -82,14 +82,14 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-800">🧪 &ldquo;What if…?&rdquo; simulator</h2>
-        <p className="text-xs text-slate-500">
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <h2 className="text-lg font-semibold text-ink">🧪 &ldquo;What if…?&rdquo; simulator</h2>
+        <p className="text-xs text-inksoft">
           Runs the scenario against your real itinerary and shows the impact chain.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <select
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="rounded-md border border-line px-3 py-2 text-sm"
             value={scenario}
             onChange={(e) => {
               setScenario(e.target.value);
@@ -103,7 +103,7 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
               </option>
             ))}
           </select>
-          <label className="text-xs text-slate-500">
+          <label className="text-xs text-inksoft">
             {scenario === "flight_delay" ? "Delay (hours)" : "Day number"}
             <input
               type="number"
@@ -111,51 +111,51 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
               max={30}
               value={paramValue}
               onChange={(e) => setParamValue(Number(e.target.value))}
-              className="ml-2 w-20 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+              className="ml-2 w-20 rounded-md border border-line px-2 py-1.5 text-sm"
             />
           </label>
           <button
             onClick={simulate}
             disabled={simulating}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary disabled:opacity-50"
           >
             {simulating ? "Simulating…" : "Simulate"}
           </button>
         </div>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
         {result && (
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <ul className="space-y-1 text-sm text-slate-700">
+          <div className="mt-3 rounded-lg border border-line bg-surface2 p-4">
+            <ul className="space-y-1 text-sm text-ink">
               {result.impact_chain.map((step, i) => (
                 <li key={i}>
                   {i < result.impact_chain.length - 1 ? "↓" : "•"} {step}
                 </li>
               ))}
             </ul>
-            {result.reasoning && <p className="mt-2 text-xs text-slate-500">{result.reasoning}</p>}
+            {result.reasoning && <p className="mt-2 text-xs text-inksoft">{result.reasoning}</p>}
           </div>
         )}
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-slate-800">💡 AI recommendations</h2>
+      <div className="rounded-xl border border-line bg-surface p-5">
+        <h2 className="text-lg font-semibold text-ink">💡 AI recommendations</h2>
         {recommendations.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-inksoft/80">
             None yet — ask the Copilot for suggestions (e.g. &ldquo;recommend places near my
             hotel&rdquo;).
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
             {recommendations.map((rec) => (
-              <li key={rec.id} className="rounded-lg border border-slate-200 p-3 text-sm">
-                <p className="font-medium text-slate-800">{rec.name}</p>
-                <p className="text-xs text-slate-500">
+              <li key={rec.id} className="rounded-lg border border-line p-3 text-sm">
+                <p className="font-medium text-ink">{rec.name}</p>
+                <p className="text-xs text-inksoft">
                   {rec.category}
                   {rec.estimated_cost !== null ? ` · ₹${rec.estimated_cost}` : ""}
                   {rec.rating !== null ? ` · ★ ${rec.rating}` : ""}
                   {rec.data_source ? ` · source: ${rec.data_source}` : ""}
                 </p>
-                {rec.reason && <p className="mt-1 text-slate-600">{rec.reason}</p>}
+                {rec.reason && <p className="mt-1 text-inksoft">{rec.reason}</p>}
               </li>
             ))}
           </ul>

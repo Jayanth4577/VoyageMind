@@ -59,14 +59,14 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
   }
 
   const inputCls =
-    "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none";
+    "w-full rounded-md border border-line px-3 py-2 text-sm focus:border-primary focus:outline-none";
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="text-lg font-semibold text-slate-800">Plan a new trip</h2>
+    <form onSubmit={submit} className="space-y-4 rounded-xl border border-line bg-surface p-5">
+      <h2 className="text-lg font-semibold text-ink">Plan a new trip</h2>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           From
           <input
             className={inputCls}
@@ -75,7 +75,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
             onChange={(e) => set("origin_name", e.target.value)}
           />
         </label>
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           To *
           <input
             className={inputCls}
@@ -88,7 +88,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           Start date *
           <input
             type="date"
@@ -98,7 +98,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
             required
           />
         </label>
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           End date *
           <input
             type="date"
@@ -112,7 +112,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
       </div>
 
       <div className="grid grid-cols-4 gap-3">
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           Travelers
           <input
             type="number"
@@ -123,7 +123,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
             onChange={(e) => set("num_travelers", Number(e.target.value))}
           />
         </label>
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           Budget
           <input
             type="number"
@@ -133,7 +133,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
             onChange={(e) => set("total_budget", Number(e.target.value))}
           />
         </label>
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           Currency
           <select
             className={inputCls}
@@ -145,7 +145,7 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
             ))}
           </select>
         </label>
-        <label className="text-xs text-slate-600">
+        <label className="text-xs text-inksoft">
           Style
           <select
             className={inputCls}
@@ -162,14 +162,14 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
       </div>
 
       <div>
-        <p className="text-xs text-slate-600">Interests</p>
+        <p className="text-xs text-inksoft">Interests</p>
         <div className="mt-1 flex flex-wrap gap-1.5">
           {interests.map((tag) => (
             <button
               type="button"
               key={tag}
               onClick={() => setInterests((list) => list.filter((t) => t !== tag))}
-              className="rounded-full bg-blue-50 px-2.5 py-1 text-xs text-blue-700 hover:bg-blue-100"
+              className="rounded-full bg-primarysoft px-2.5 py-1 text-xs text-primary hover:bg-primarysoft"
             >
               {tag} ✕
             </button>
@@ -191,14 +191,14 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
           <button
             type="button"
             onClick={addInterest}
-            className="rounded-md border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
+            className="rounded-md border border-line px-3 text-sm text-inksoft hover:bg-surface2"
           >
             Add
           </button>
         </div>
       </div>
 
-      <label className="block text-xs text-slate-600">
+      <label className="block text-xs text-inksoft">
         Constraints
         <textarea
           className={inputCls}
@@ -209,12 +209,12 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
         />
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <button
         type="submit"
         disabled={saving}
-        className="w-full rounded-md bg-blue-600 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-white hover:bg-primary disabled:opacity-50"
       >
         {saving ? "Creating…" : "Create trip"}
       </button>

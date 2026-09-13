@@ -42,10 +42,10 @@ interface WeatherRiskReport {
 }
 
 const RISK_STYLES: Record<string, string> = {
-  none: "bg-emerald-100 text-emerald-700",
-  rain: "bg-sky-100 text-sky-700",
+  none: "bg-primarysoft text-primary",
+  rain: "bg-accentsoft text-accent",
   heat: "bg-orange-100 text-orange-700",
-  severe: "bg-red-100 text-red-700",
+  severe: "bg-dangersoft text-danger",
 };
 
 function SourceBadge({ data }: { data: { source?: string; retrieved_at?: string; is_mock?: boolean; cached?: boolean } }) {
@@ -54,7 +54,7 @@ function SourceBadge({ data }: { data: { source?: string; retrieved_at?: string;
     ? new Date(data.retrieved_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
     : null;
   return (
-    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] text-slate-500">
+    <span className="rounded-full bg-surface2 px-2.5 py-0.5 text-[11px] text-inksoft">
       {data.is_mock ? "⚠ " : "🛰 "}
       {label}
       {time ? ` · updated ${time}` : ""}
@@ -90,22 +90,22 @@ export default function WeatherPanel({ tripId }: { tripId: string }) {
 
   if (error)
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-red-700">
+      <div className="rounded-xl border border-line bg-surface p-5 text-sm text-danger">
         {error}
       </div>
     );
   if (!forecast || !risks)
-    return <p className="text-sm text-slate-500">Loading weather…</p>;
+    return <p className="text-sm text-inksoft">Loading weather…</p>;
 
   return (
     <div className="space-y-4">
       {forecast.is_mock && forecast.note && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{forecast.note}</p>
+        <p className="rounded-lg bg-warnsoft p-3 text-sm text-warn">{forecast.note}</p>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-line bg-surface p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-800">🌦 Forecast</h2>
+          <h2 className="text-lg font-semibold text-ink">🌦 Forecast</h2>
           <SourceBadge data={forecast} />
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -113,10 +113,10 @@ export default function WeatherPanel({ tripId }: { tripId: string }) {
             <div
               key={i}
               className={`w-40 shrink-0 rounded-lg border p-3 ${
-                day.significant_rain ? "border-sky-300 bg-sky-50" : "border-slate-200 bg-slate-50"
+                day.significant_rain ? "border-accent bg-accentsoft" : "border-line bg-surface2"
               }`}
             >
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-xs font-medium text-inksoft">
                 {day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date)
                   ? new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
                       weekday: "short",
@@ -125,37 +125,37 @@ export default function WeatherPanel({ tripId }: { tripId: string }) {
                     })
                   : day.date || `Day ${i + 1}`}
               </p>
-              <p className="mt-1 text-xl font-semibold text-slate-800">
+              <p className="mt-1 text-xl font-semibold text-ink">
                 {day.temp_max_c !== null && day.temp_max_c !== undefined
                   ? `${Math.round(day.temp_max_c)}°C`
                   : "—"}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-inksoft">
                 min {day.temp_min_c !== null && day.temp_min_c !== undefined ? `${Math.round(day.temp_min_c)}°` : "—"}
                 {day.rain_probability !== null && day.rain_probability !== undefined
                   ? ` · 🌧 ${day.rain_probability}%`
                   : ""}
               </p>
               {day.significant_rain && (
-                <p className="mt-1 text-xs font-medium text-sky-700">Significant rain likely</p>
+                <p className="mt-1 text-xs font-medium text-accent">Significant rain likely</p>
               )}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="rounded-xl border border-line bg-surface p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-800">Activity weather risk</h2>
+          <h2 className="text-lg font-semibold text-ink">Activity weather risk</h2>
           <SourceBadge data={risks} />
         </div>
         {risks.status !== "ok" && (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-inksoft">
             Weather risks unavailable for this trip&apos;s destination.
           </p>
         )}
         {risks.status === "ok" && risks.days_at_risk === 0 && (
-          <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          <p className="rounded-lg bg-primarysoft p-3 text-sm text-primary">
             ✓ No weather risks detected for the current plan.
           </p>
         )}
@@ -163,16 +163,16 @@ export default function WeatherPanel({ tripId }: { tripId: string }) {
           {risks.days
             .filter((d) => d.risk !== "none")
             .map((day) => (
-              <li key={day.day_number} className="rounded-lg border border-slate-200 p-3 text-sm">
+              <li key={day.day_number} className="rounded-lg border border-line p-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${RISK_STYLES[day.risk]}`}>
                     Day {day.day_number}: {day.risk}
                   </span>
-                  <span className="text-xs text-slate-500">{day.reasons.join(" · ")}</span>
+                  <span className="text-xs text-inksoft">{day.reasons.join(" · ")}</span>
                 </div>
-                {day.suggestion && <p className="mt-1 text-slate-600">{day.suggestion}</p>}
+                {day.suggestion && <p className="mt-1 text-inksoft">{day.suggestion}</p>}
                 {day.affected_activity_ids.length > 0 && (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-inksoft">
                     {day.affected_activity_ids.length} outdoor activity(s) at risk — ask the
                     Copilot to reschedule them.
                   </p>

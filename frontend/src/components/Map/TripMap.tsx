@@ -50,13 +50,13 @@ export default function TripMap({ tripId }: { tripId: string }) {
     ? [points[0].latitude!, points[0].longitude!]
     : [15.2993, 74.124]; // Goa default until geocoding lands (Phase 3)
 
-  if (error) return <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>;
+  if (error) return <p className="rounded-lg bg-dangersoft p-3 text-sm text-danger">{error}</p>;
 
   return (
-    <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
+    <div className="space-y-2 rounded-xl border border-line bg-surface p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">Map</h2>
-        <p className="text-xs text-slate-400">
+        <h2 className="text-lg font-semibold text-ink">Map</h2>
+        <p className="text-xs text-inksoft/80">
           {points.length > 0
             ? `${points.length} pinned ${points.length === 1 ? "activity" : "activities"}`
             : "No coordinates yet — add activities with locations"}
@@ -84,7 +84,7 @@ export default function TripMap({ tripId }: { tripId: string }) {
           </Marker>
         ))}
       </MapContainer>
-      <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+      <div className="flex flex-wrap gap-3 text-xs text-inksoft">
         {days.map((day, i) => (
           <span key={day.id} className="flex items-center gap-1">
             <span

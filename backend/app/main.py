@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 
 from app.api import (
     agents,
+    analytics,
     auth,
     budget,
     copilot,
@@ -81,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(copilot.router)
     app.include_router(group.router)
+    app.include_router(analytics.router)
 
     @app.get("/health", tags=["health"])
     def health() -> dict:
