@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.api.deps import CurrentUser, DbSession
-from app.models import Activity, ItineraryDay, Trip
+from app.models import ItineraryDay, Trip
 from app.schemas.trip_schema import TripCreate, TripListOut, TripOut, TripUpdate
 
 router = APIRouter(prefix="/trips", tags=["trips"])
@@ -80,7 +80,7 @@ def update_trip(trip_id: str, body: TripUpdate, user: CurrentUser, db: DbSession
 @router.delete("/{trip_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_trip(trip_id: str, user: CurrentUser, db: DbSession) -> None:
     trip = _owned_trip(trip_id, user, db)
-    # Activities reference the trip directly; clean them first for cross-DB safety.
-    db.query(Activity).filter(Activity.trip_id == trip.id).delete()
+    # All trip-owned children (days, activities, budget items, contingencies,
+    # recommendations, events, …) cascade via relationship rules.
     db.delete(trip)
     db.commit()

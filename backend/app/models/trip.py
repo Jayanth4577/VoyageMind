@@ -50,6 +50,29 @@ class Trip(Base, IdMixin, TimestampMixin):
     preferences_per_person: Mapped[list[TripPreference]] = relationship(
         back_populates="trip", cascade="all, delete-orphan"
     )
+    # Remaining trip-owned children — ORM-level cascade removes them with the trip.
+    # (Postgres enforces the FKs, so these rules are mandatory, not optional.)
+    recommendations: Mapped[list[Recommendation]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    contingencies: Mapped[list[Contingency]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    transport_options: Mapped[list[TransportOption]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    accommodations: Mapped[list[Accommodation]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    weather_snapshots: Mapped[list[WeatherSnapshot]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    events: Mapped[list[TripEvent]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
+    copilot_messages: Mapped[list[CopilotMessage]] = relationship(  # noqa: F821
+        cascade="all, delete-orphan"
+    )
 
 
 class TripPreference(Base, IdMixin, TimestampMixin):
