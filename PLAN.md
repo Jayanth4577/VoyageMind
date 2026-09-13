@@ -89,13 +89,14 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 6.8 What-if simulation `POST /trips/{id}/simulate`: flight delay / rain / budget change / fewer travelers / hotel unavailable / extra day — runs the same itinerary + tool infrastructure, shows impact chain + budget delta + contingency
 - [x] 6.9 E2E tests for the two spec scenarios (generate→edit→weather→accept→recalc; custom itinerary→conflict→suggestion→accept)
 
-## Phase 7 — Mode C polish, Group Travel, UX
-- [ ] 7.1 AI Assisted Builder: live conflict/feasibility detection as user edits, with reschedule suggestion cards
-- [ ] 7.2 Trip dashboard tabs: Overview / Itinerary / Builder / Copilot / Map / Budget / Weather / Recommendations / Risks / Contingencies
-- [ ] 7.3 WeatherPanel with per-day forecast + per-activity weather risk
-- [ ] 7.4 Group travel: per-traveler preferences, overlap/conflict analysis, balanced-plan weighting (e.g., Beach 90% / Food 85% …) feeding Planner Agent
-- [ ] 7.5 Source-transparency UI badges ("Weather API · updated 10 min ago")
-- [ ] 7.6 Observability: request IDs, agent selected, tool called, tool latency, failures, LLM latency, approval/rejection events (no secrets logged)
+## Phase 7 — Mode C polish, Group Travel, UX ✅ (162/162 backend + 18/18 gateway tests; frontend builds & lints clean)
+- [x] 7.1 AI Assisted Builder: live conflict/warning detection on every itinerary mutation, "🤖 Ask AI to fix this" button on conflicted days → Copilot proposes a reschedule as an Accept/Reject suggestion card (never silent edits)
+- [x] 7.2 Trip dashboard tabs: Itinerary / Copilot / Budget / Weather / Map / Risks & Simulate / Contingencies / Group, plus a Mode A "🤖 AI Plan" button in the header
+- [x] 7.3 WeatherPanel: per-day forecast cards (temp, rain probability, significant-rain highlight) + per-day activity weather-risk report with rule-based suggestions
+- [x] 7.4 Group travel: per-traveler preference CRUD + deterministic overlap/conflict analysis (averages, coverage, spread, consensus, balanced weights fed into `POST /trips/{id}/generate` via `group_preferences` context)
+- [x] 7.5 Source-transparency UI: every weather/forecast block shows `{source, retrieved_at, cached}` badges and an explicit ⚠ "Demo data" state for mock payloads
+- [x] 7.6 Observability: tool name + latency + outcome logged per agent tool call; request-ID middleware, agent runs, approvals/rejections, contingency actions all recorded in structured logs and `trip_events`
+- [x] Bonus cleanup: gateway lint debt cleared (ruff clean), nearby-places expanded with beach/temple/market Overpass categories matching the agent tool docs
 
 ## Phase 8 — Hardening, Testing, Demo, Deploy
 - [ ] 8.1 Full error handling pass: API timeout, rate limit, invalid creds, missing/partial data, LLM failure, MCP failure, network failure — app never crashes

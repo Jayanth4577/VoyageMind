@@ -193,19 +193,22 @@ async def execute_tool(name: str, arguments: dict) -> ToolTrace:
     t0 = time.monotonic()
     try:
         result = await _dispatch(name, arguments)
+        duration = round((time.monotonic() - t0) * 1000, 1)
+        logger.info("tool=%s duration_ms=%s ok=%s", name, duration, result.get("status") is None)
         return ToolTrace(
             tool=name,
             arguments=arguments,
             result=result,
-            duration_ms=round((time.monotonic() - t0) * 1000, 1),
+            duration_ms=duration,
         )
     except Exception as exc:  # noqa: BLE001
-        logger.warning("tool %s failed: %s", name, exc)
+        duration = round((time.monotonic() - t0) * 1000, 1)
+        logger.warning("tool=%s duration_ms=%s failed: %s", name, duration, exc)
         return ToolTrace(
             tool=name,
             arguments=arguments,
             result={"status": "error", "error": str(exc)},
-            duration_ms=round((time.monotonic() - t0) * 1000, 1),
+            duration_ms=duration,
             error=str(exc),
         )
 

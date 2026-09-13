@@ -1,4 +1,5 @@
 """Maps tools: geocoding (Open-Meteo/Nominatim), routing (OSRM), places (Overpass)."""
+import itertools
 import os
 
 from travel_mcp.tools.common import get_client, is_demo_mode, meta
@@ -17,6 +18,9 @@ OVERPASS_FILTERS = {
     "hotel": 'node["tourism"="hotel"]',
     "supermarket": 'node["shop"="supermarket"]',
     "pharmacy": 'node["amenity"="pharmacy"]',
+    "beach": 'node["natural"="beach"]',
+    "temple": 'node["amenity"="place_of_worship"]',
+    "market": 'node["amenity"="marketplace"]',
 }
 
 
@@ -75,7 +79,7 @@ async def calculate_route(points: list[dict]) -> dict:
             _haversine_km(
                 a["latitude"], a["longitude"], b["latitude"], b["longitude"]
             )
-            for a, b in zip(points, points[1:], strict=False)
+            for a, b in itertools.pairwise(points)
         )
         return {
             **meta("mock", True),
@@ -100,7 +104,7 @@ async def calculate_route(points: list[dict]) -> dict:
                         * 60
                     ),
                 }
-                for i, (a, b) in enumerate(zip(points, points[1:], strict=False))
+                for i, (a, b) in enumerate(itertools.pairwise(points))
             ],
         }
 
@@ -160,7 +164,7 @@ async def optimize_route(points: list[dict]) -> dict:
                 points[a]["latitude"], points[a]["longitude"],
                 points[b]["latitude"], points[b]["longitude"],
             )
-            for a, b in zip(order, order[1:], strict=False)
+            for a, b in itertools.pairwise(order)
         )
         return {
             **meta("mock", True),
@@ -193,7 +197,7 @@ async def optimize_route(points: list[dict]) -> dict:
             "duration_minutes": round(leg["duration"] / 60),
         }
         for (a, b), leg in zip(
-            zip(order, order[1:], strict=False), trip.get("legs", []), strict=False
+            itertools.pairwise(order), trip.get("legs", []), strict=False
         )
     ]
     return {

@@ -1,5 +1,4 @@
 """Weather tools (Open-Meteo). Live forecast + air quality, labeled demo fallback."""
-import asyncio
 import os
 
 from travel_mcp.tools.common import get_client, is_demo_mode, meta

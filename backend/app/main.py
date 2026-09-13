@@ -12,6 +12,7 @@ from app.api import (
     auth,
     budget,
     copilot,
+    group,
     itinerary,
     optimization,
     trips,
@@ -71,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(optimization.router)
     app.include_router(agents.router)
     app.include_router(copilot.router)
+    app.include_router(group.router)
 
     @app.get("/health", tags=["health"])
     def health() -> dict:

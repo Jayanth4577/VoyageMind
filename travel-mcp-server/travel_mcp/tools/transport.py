@@ -103,7 +103,7 @@ async def search_transport(origin: str, destination: str, date: str) -> dict:
                 "arrival_at": segs[-1].get("arriving_at"),
                 "duration_minutes": int(slices[0].get("duration", "PT0S")[2:-1] or 0) // 60
                 or None,
-                "price": float((offer.get("total_amount") or 0)),
+                "price": float(offer.get("total_amount") or 0),
                 "currency": offer.get("total_currency", "USD"),
             }
         )

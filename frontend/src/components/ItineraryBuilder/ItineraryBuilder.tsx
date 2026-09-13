@@ -8,9 +8,11 @@ import type { Activity, ConflictIssue, ItineraryDay } from "@/types";
 
 interface Props {
   tripId: string;
+  /** Mode C: ask the copilot to propose a fix for the current schedule conflicts. */
+  onAskAi?: (dayNumbers: number[]) => void;
 }
 
-export default function ItineraryBuilder({ tripId }: Props) {
+export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
   const [days, setDays] = useState<ItineraryDay[]>([]);
   const [issues, setIssues] = useState<ConflictIssue[]>([]);
   const [error, setError] = useState("");
@@ -126,16 +128,36 @@ export default function ItineraryBuilder({ tripId }: Props) {
       )}
 
       {issues.length > 0 && (
-        <ul className="space-y-1 rounded-lg border border-slate-200 bg-white p-3 text-sm">
-          {issues.map((issue, i) => (
-            <li
-              key={i}
-              className={issue.severity === "conflict" ? "text-red-700" : "text-amber-700"}
+        <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm">
+          <ul className="space-y-1">
+            {issues.map((issue, i) => (
+              <li
+                key={i}
+                className={issue.severity === "conflict" ? "text-red-700" : "text-amber-700"}
+              >
+                {issue.severity === "conflict" ? "✕" : "⚠"} Day {issue.day_number}: {issue.message}
+              </li>
+            ))}
+          </ul>
+          {conflictCount > 0 && onAskAi && (
+            <button
+              onClick={() =>
+                onAskAi(
+                  Array.from(
+                    new Set(
+                      issues
+                        .filter((i) => i.severity === "conflict")
+                        .map((i) => i.day_number),
+                    ),
+                  ),
+                )
+              }
+              className="mt-2 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
             >
-              {issue.severity === "conflict" ? "✕" : "⚠"} Day {issue.day_number}: {issue.message}
-            </li>
-          ))}
-        </ul>
+              🤖 Ask AI to fix this
+            </button>
+          )}
+        </div>
       )}
 
       {busy ? (

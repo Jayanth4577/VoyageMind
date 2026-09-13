@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/trips", tags=["agents"])
 
 
-def _build_context(trip, body: GenerateRequest | None) -> AgentContext:
+def _build_context(db, trip, body: GenerateRequest | None) -> AgentContext:
     """Serialize trip state into an AgentContext for the agent pipeline."""
     trip_data = {
         "id": trip.id,
@@ -57,6 +57,14 @@ def _build_context(trip, body: GenerateRequest | None) -> AgentContext:
     preferences = body.preferences if body else {}
     if body and body.constraints:
         trip_data["constraints"] = f"{trip_data.get('constraints', '')} {body.constraints}".strip()
+
+    # Group travel: attach the deterministic per-traveler analysis when present
+    # so the Planner can generate a balanced plan (spec §20).
+    from app.services import group_service
+
+    analysis = group_service.analysis_for_trip(db, trip)
+    if analysis["travelers"] > 0:
+        trip_data["group_preferences"] = analysis
 
     return AgentContext(
         trip_id=trip.id,
@@ -122,7 +130,7 @@ async def generate_plan(
     auto-syncs budget items).  The plan is editable afterwards (Mode B).
     """
     trip = get_owned_trip(db, trip_id, user)
-    context = _build_context(trip, body)
+    context = _build_context(db, trip, body)
 
     master = MasterAgent()
     result = await master.run(context)
