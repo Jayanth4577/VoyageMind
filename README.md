@@ -53,7 +53,7 @@ journey:
 - **AI** — pluggable LLM layer (Gemini / OpenAI / Ollama) with a tool-calling agent loop
 - **Data** — custom Travel MCP Gateway (MCP protocol) over Open-Meteo · OSRM · Nominatim ·
   Overpass · Duffel · open.er-api
-- **Infra** — PostgreSQL · Redis (optional, degrades gracefully) · Docker Compose
+- **Infra** — PostgreSQL (Docker) · Redis (optional, degrades gracefully) · Docker Compose
 
 ```
 backend/            FastAPI app — API, agents, deterministic services, LLM abstraction
@@ -66,11 +66,15 @@ docs/               architecture, demo runbook, deployment guide
 ## Quick start
 
 ```bash
+# 0. PostgreSQL (Docker Desktop) — everything is stored here
+docker compose up -d postgres redis
+
 # 1. MCP gateway (no keys needed in demo mode)
 cd travel-mcp-server && pip install -e ".[dev]"
 set TRAVEL_MCP_DEMO_MODE=1 && uvicorn travel_mcp.server:app --port 8001
 
-# 2. Backend
+# 2. Backend — backend/.env already points at postgres://localhost:5432/voyagemind
+#    (first run: alembic upgrade head)
 cd ../backend && pip install -e ".[dev]"
 uvicorn app.main:app --port 8000
 
