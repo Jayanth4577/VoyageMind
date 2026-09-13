@@ -21,6 +21,7 @@ from app.api import (
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.logging import configure_logging, get_logger, request_id_var
+from app.core.rate_limit import RateLimitMiddleware
 
 configure_logging()
 logger = get_logger(__name__)
@@ -30,6 +31,11 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     # create_all is idempotent; production runs `alembic upgrade head` on deploy.
     init_db()
+    if settings.environment == "production" and settings.jwt_secret.startswith("dev-only"):
+        logger.error(
+            "SECURITY: JWT_SECRET is still the development default in a production "
+            "environment — set a strong JWT_SECRET before going live"
+        )
     yield
 
 
@@ -57,6 +63,8 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid
         return response
+
+    app.add_middleware(RateLimitMiddleware)
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:

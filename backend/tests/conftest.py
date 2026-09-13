@@ -4,6 +4,10 @@ import os
 
 os.environ.setdefault("ENVIRONMENT", "test")
 os.environ.setdefault("DATABASE_URL", "sqlite:///./test_voyagemind.db")
+# Generous budgets so the suite doesn't trip rate limiting; the dedicated
+# rate-limit test lowers them via settings monkeypatch.
+os.environ.setdefault("RATE_LIMIT_PER_MINUTE", "100000")
+os.environ.setdefault("AUTH_RATE_LIMIT_PER_MINUTE", "100000")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -1,7 +1,7 @@
 """LLM provider abstraction (spec §14).
 
 The application depends only on this interface. Providers are selected via
-LLM_PROVIDER config; adding Amazon Nova later must not require app rewrites.
+LLM_PROVIDER config; swapping providers must not require app rewrites.
 Providers do reasoning only — never arithmetic or live-data invention.
 """
 

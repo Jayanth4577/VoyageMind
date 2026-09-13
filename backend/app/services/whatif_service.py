@@ -10,11 +10,20 @@ from sqlalchemy.orm import Session
 from app.core.logging import get_logger
 from app.models import Trip
 from app.services.budget_service import compute_summary
+from app.services.contingency_service import create_contingency
 
 logger = get_logger(__name__)
 
 # Scenario handlers registry
 _SCENARIOS = {}
+
+# Plan level per trigger (spec §6: B weather, C transport, D accommodation, E other)
+_PLAN_LEVELS = {"RAIN": "B", "FLIGHT_DELAY": "C", "HOTEL_ISSUE": "D"}
+_DEFAULT_FALLBACK = [
+    "Re-evaluate the affected activities",
+    "Switch to the alternative plan",
+    "Recalculate budget, routes and conflicts",
+]
 
 
 def scenario(name: str):
@@ -28,7 +37,7 @@ def scenario(name: str):
 async def simulate(
     db: Session, trip: Trip, scenario_name: str, params: dict
 ) -> dict:
-    """Run a what-if simulation."""
+    """Run a what-if simulation and persist any triggered contingency (spec §6)."""
     handler = _SCENARIOS.get(scenario_name)
     if handler is None:
         return {
@@ -38,7 +47,7 @@ async def simulate(
             "reasoning": "Scenario not supported",
         }
     try:
-        return await handler(db, trip, params)
+        result = await handler(db, trip, params)
     except Exception as exc:
         logger.error("Simulation error for %s: %s", scenario_name, exc)
         return {
@@ -47,6 +56,35 @@ async def simulate(
             "impact_chain": [f"Simulation error: {exc}"],
             "reasoning": str(exc),
         }
+
+    triggers = result.get("contingency_triggered") or []
+    if triggers:
+        fallback_steps = [
+            s.get("reason") or s.get("problem") or "Adjust the affected activities"
+            for s in result.get("suggestions", [])
+        ] or _DEFAULT_FALLBACK
+        for trigger in triggers:
+            create_contingency(
+                db,
+                trip,
+                {
+                    "plan_level": _PLAN_LEVELS.get(trigger, "E"),
+                    "trigger": trigger,
+                    "condition": (
+                        f"what-if scenario '{result.get('scenario')}' with "
+                        f"{result.get('parameters')}"
+                    ),
+                    "fallback_steps": fallback_steps,
+                    "budget_impact": result.get("budget_delta"),
+                    "time_impact_minutes": result.get("time_delta_minutes"),
+                    "reason": result.get("reasoning", "Generated from what-if simulation"),
+                    "requires_user_approval": True,
+                },
+            )
+        db.commit()
+        result["contingencies_created"] = len(triggers)
+
+    return result
 
 
 @scenario("rain")

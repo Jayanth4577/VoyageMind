@@ -2,7 +2,7 @@
 
 A production-quality prototype of an **AI Travel Copilot workspace** (not just an itinerary generator), built per the HLD/LLD spec.
 
-**Stack:** Next.js frontend · FastAPI backend · PostgreSQL + Redis · Custom Travel MCP Gateway · Pluggable LLM providers (Gemini/Ollama/OpenAI/Nova-ready)
+**Stack:** Next.js frontend · FastAPI backend · PostgreSQL + Redis · Custom Travel MCP Gateway · Pluggable LLM providers (Gemini/Ollama/OpenAI — Nova removed by product decision)
 
 **Golden rule (never violate):** LLM = reasoning only. All arithmetic, validation, routes, weather, and prices come from backend services / MCP tools / real APIs. The user always approves AI-proposed changes.
 
@@ -27,7 +27,7 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 1.3 Activity model with full fields (`id, day, name, category, location, lat, lng, start/end_time, duration, estimated_cost, weather_sensitive, indoor, source, user_selected, ai_recommended, confidence`)
 - [x] 1.4 Auth: register/login (JWT), per-user trip ownership enforced on every trip route (404 on foreign access)
 - [x] 1.5 Trip APIs: `POST/GET/PUT/DELETE /trips`, `GET /trips/{trip_id}` — trip inputs (origin, destination, dates, travelers, budget, currency, preferences, constraints); auto-creates one `itinerary_days` row per trip date
-- [x] 1.6 LLM abstraction layer: `llm/provider.py` (`generate`, `generate_structured`, `call_tools`) + `GeminiProvider`, `OllamaProvider`, `OpenAIProvider` (+ Nova adapter stub). Provider chosen by config (MCP SDK 2.x `MCPServer` used for the gateway)
+- [x] 1.6 LLM abstraction layer: `llm/provider.py` (`generate`, `generate_structured`, `call_tools`) + `GeminiProvider`, `OllamaProvider`, `OpenAIProvider` (Nova adapter was added per spec §14 and later removed by product decision). Provider chosen by config (MCP SDK 2.x `MCPServer` used for the gateway)
 - [x] 1.7 Redis client + cache helper with TTLs, graceful no-op degradation when Redis is down (rate limiting lands with hardening in Phase 8)
 - [x] 1.8 Unit tests: models, schemas, auth, trip CRUD, LLM providers (30 tests)
 
@@ -98,14 +98,15 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 7.6 Observability: tool name + latency + outcome logged per agent tool call; request-ID middleware, agent runs, approvals/rejections, contingency actions all recorded in structured logs and `trip_events`
 - [x] Bonus cleanup: gateway lint debt cleared (ruff clean), nearby-places expanded with beach/temple/market Overpass categories matching the agent tool docs
 
-## Phase 8 — Hardening, Testing, Demo, Deploy
-- [ ] 8.1 Full error handling pass: API timeout, rate limit, invalid creds, missing/partial data, LLM failure, MCP failure, network failure — app never crashes
-- [ ] 8.2 Rate limiting + input validation audit; security checklist (env-only secrets, backend-only 3rd-party calls, authz on every route)
-- [ ] 8.3 Test suite complete: unit (budget/time/conflict/route/weather/contingency) + integration (MCP, endpoints, DB, Redis) + E2E
-- [ ] 8.4 Demo mode with labeled mock data; scripted demo scenario (Bengaluru→Goa, 4 pax, 5 days, ₹50,000) covering all 10 steps of spec §32
-- [ ] 8.5 Optional stretch: voice input (speech→intent), destination-image multimodal ("where could this be?")
-- [ ] 8.6 Deployment (Docker; one-command `docker compose up` demo)
-- [ ] 8.7 Docs: README with setup, architecture diagram, demo script
+## Phase 8 — Hardening, Testing, Demo, Deploy ✅ (167/167 backend + 18/18 gateway tests; demo script verified end-to-end; all suites + lint + build green)
+- [x] 8.1 Error handling audit: unhandled-exception handler (no internals leaked), LLM failure → friendly copilot message / HTTP 503 with guidance on `/generate`, MCP failures → labeled mock fallback, Redis down → no-op cache, provider timeouts everywhere; loud startup warning if JWT_SECRET is still the dev default in production
+- [x] 8.2 Rate limiting: in-memory sliding-window middleware (300 req/min general, 15 req/min auth endpoints, 429 + Retry-After, config-tunable, Redis-independent) + 5 hardening tests; security checklist verified (env-only secrets, authz on every trip route, backend-only third-party calls, pydantic validation)
+- [x] 8.3 Test suite: 167 backend tests (unit + integration + MCP protocol round-trip + hardening) and 18 gateway tests
+- [x] 8.4 Demo: `TRAVEL_MCP_DEMO_MODE=1` labeled demo data with zero external keys; `scripts/demo_scenario.py` walks all 10 spec §32 steps over the real API (verified end-to-end); what-if simulations now persist structured contingencies
+- [x] 8.5 Optional stretch (voice, multimodal): intentionally skipped — architecture already supports clean additions via provider/agent interfaces
+- [x] 8.6 Deployment: `docker compose up --build` one-command demo (compose validated); full cloud guide in `docs/DEPLOYMENT.md` (Vercel frontend + Render/Railway Python services + Neon Postgres + Upstash Redis)
+- [x] 8.7 Docs: README rewritten with env-var/key placement table; `docs/DEMO.md` demo runbook; `docs/DEPLOYMENT.md` deploy guide
+- [x] Cleanup: Amazon Nova provider fully removed (code, config, env, docs) per product decision; unused Mapbox token plumbing removed; stray temp files deleted
 
 ---
 

@@ -2,7 +2,6 @@
 
 from app.core.config import settings
 from app.llm.gemini_provider import GeminiProvider
-from app.llm.nova_provider import NovaProvider
 from app.llm.ollama_provider import OllamaProvider
 from app.llm.openai_provider import OpenAIProvider
 from app.llm.provider import LLMError, LLMProvider
@@ -11,7 +10,6 @@ _REGISTRY = {
     "gemini": GeminiProvider,
     "ollama": OllamaProvider,
     "openai": OpenAIProvider,
-    "nova": NovaProvider,
 }
 
 

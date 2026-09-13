@@ -5,12 +5,13 @@ Endpoints:
     GET  /trips/{trip_id}/recommendations — AI recommendations
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 from app.agents.context import AgentContext
 from app.agents.master_agent import MasterAgent
 from app.api.deps import CurrentUser, DbSession
 from app.core.logging import get_logger
+from app.llm import LLMError
 from app.models import Recommendation, TripEvent
 from app.schemas.activity_schema import ActivityCreate
 from app.schemas.agent_schema import (
@@ -132,8 +133,16 @@ async def generate_plan(
     trip = get_owned_trip(db, trip_id, user)
     context = _build_context(db, trip, body)
 
-    master = MasterAgent()
-    result = await master.run(context)
+    try:
+        master = MasterAgent()
+        result = await master.run(context)
+    except LLMError as exc:
+        # Graceful degradation: no crash, clear signal that AI features need a key
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"AI planning is unavailable: {exc}. Set an LLM provider key (see README) "
+            "or use the manual builder meanwhile.",
+        ) from exc
 
     plan = _parse_plan(result.data)
 

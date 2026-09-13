@@ -37,7 +37,7 @@ backend/app/
 │                      budget, route, contingency
 ├── services/          trip, itinerary, budget, route, weather, optimization, conflict
 ├── mcp/               client + travel/flight/weather/maps gateways
-├── llm/               provider base + gemini/ollama/nova adapters
+├── llm/               provider base + gemini/ollama/openai adapters
 ├── models/            SQLAlchemy entities (users, trips, activities, contingencies, ...)
 ├── schemas/           Pydantic request/response contracts
 ├── core/              config, database, security, logging

@@ -30,7 +30,6 @@ services:
     environment:
       MCP_PORT: 8001
       OPEN_METEO_BASE_URL: ${OPEN_METEO_BASE_URL:-https://api.open-meteo.com/v1}
-      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
       DUFFEL_API_KEY: ${DUFFEL_API_KEY:-}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       TRAVEL_MCP_DEMO_MODE: ${TRAVEL_MCP_DEMO_MODE:-}
