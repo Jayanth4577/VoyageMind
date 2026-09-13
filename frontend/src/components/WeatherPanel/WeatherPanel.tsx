@@ -117,7 +117,7 @@ export default function WeatherPanel({ tripId }: { tripId: string }) {
               }`}
             >
               <p className="text-xs font-medium text-slate-500">
-                {day.date && day.date.includes("-")
+                {day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date)
                   ? new Date(day.date + "T00:00:00").toLocaleDateString(undefined, {
                       weekday: "short",
                       month: "short",
