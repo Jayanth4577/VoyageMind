@@ -19,7 +19,7 @@ journey:
   budget overruns, then *proposes* fixes as cards you accept, reject or edit. It never
   silently edits your trip.
 - **Real data, not vibes** — forecasts from Open-Meteo, road times from OSRM, places from
-  OpenStreetMap, flights from Duffel — all behind a custom **Travel MCP Gateway** that keeps
+  OpenStreetMap, flights from SerpApi (Google Flights) — all behind a custom **Travel MCP Gateway** that keeps
   every provider swappable. When a provider is down, you get clearly-labeled demo data
   instead of made-up numbers.
 - **A budget engine you can trust** — all money math is deterministic backend logic. The AI
@@ -52,7 +52,7 @@ journey:
 - **Backend** — FastAPI · SQLAlchemy 2 · JWT auth · Alembic
 - **AI** — pluggable LLM layer (Gemini / OpenAI / Ollama) with a tool-calling agent loop
 - **Data** — custom Travel MCP Gateway (MCP protocol) over Open-Meteo · OSRM · Nominatim ·
-  Overpass · Duffel · open.er-api
+  Overpass · SerpApi · open.er-api
 - **Infra** — PostgreSQL (Docker) · Redis (optional, degrades gracefully) · Docker Compose
 
 ```

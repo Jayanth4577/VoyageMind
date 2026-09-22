@@ -6,6 +6,7 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
+from app.core.config import settings
 from app.llm import get_llm_provider
 from app.llm.ollama_provider import OllamaProvider
 from app.llm.openai_provider import OpenAIProvider
@@ -30,9 +31,10 @@ def test_factory_unknown_provider():
         get_llm_provider("doesnotexist")
 
 
-def test_gemini_requires_api_key():
+def test_gemini_requires_api_key(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "")
     with pytest.raises(LLMError):
-        get_llm_provider("gemini")  # no key configured in test env
+        get_llm_provider("gemini")
 
 
 def test_ollama_generate_call():

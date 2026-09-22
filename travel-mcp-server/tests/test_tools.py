@@ -230,11 +230,40 @@ async def test_exchange_rate_unknown_currency(monkeypatch):
 
 @pytest.mark.anyio
 async def test_search_transport_without_key_is_labeled_mock(monkeypatch):
-    monkeypatch.delenv("DUFFEL_API_KEY", raising=False)
+    monkeypatch.delenv("SERPAPI_API_KEY", raising=False)
     out = await transport.search_transport("BLR", "GOI", "2026-10-01")
     assert out["is_mock"] is True
     assert "DEMO DATA" in out["note"]
     assert len(out["offers"]) == 3
+
+
+@pytest.mark.anyio
+async def test_search_transport_serpapi(monkeypatch):
+    serp_response = {
+        "best_flights": [
+            {
+                "flights": [
+                    {
+                        "airline": "Air India",
+                        "flight_number": "AI 101",
+                        "departure_airport": {"time": "2026-10-01 10:00"},
+                        "arrival_airport": {"time": "2026-10-01 11:30"},
+                        "duration": 90,
+                    }
+                ],
+                "total_duration": 90,
+                "price": 5000,
+            }
+        ]
+    }
+    install_mock_http(monkeypatch, lambda request: httpx.Response(200, json=serp_response))
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    out = await transport.search_transport("BLR", "GOI", "2026-10-01")
+    assert out["is_mock"] is False
+    assert out["source"] == "serpapi"
+    assert len(out["offers"]) == 1
+    assert out["offers"][0]["airline"] == "Air India (AI 101)"
+    assert out["offers"][0]["price"] == 5000.0
 
 
 @pytest.mark.anyio

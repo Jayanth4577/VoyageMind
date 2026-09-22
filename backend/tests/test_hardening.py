@@ -46,8 +46,10 @@ def test_auth_endpoints_have_stricter_budget(client, monkeypatch):
     rl.reset_rate_limiter()
 
 
-def test_generate_returns_503_without_llm_key(client):
+def test_generate_returns_503_without_llm_key(client, monkeypatch):
     """No LLM key configured in tests -> generate must degrade to 503, not 500."""
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+    monkeypatch.setattr(settings, "openai_api_key", "")
     headers = auth_headers(client, "nokey@example.com")
     trip = client.post(
         "/trips",
@@ -60,7 +62,9 @@ def test_generate_returns_503_without_llm_key(client):
     assert "AI planning is unavailable" in res.json()["detail"]
 
 
-def test_copilot_degrades_gracefully_without_llm_key(client):
+def test_copilot_degrades_gracefully_without_llm_key(client, monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "")
+    monkeypatch.setattr(settings, "openai_api_key", "")
     headers = auth_headers(client, "nokey2@example.com")
     trip = client.post(
         "/trips",

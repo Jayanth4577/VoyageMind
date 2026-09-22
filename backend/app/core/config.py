@@ -43,7 +43,6 @@ class Settings(BaseSettings):
     # External data providers (called only from MCP/tools layer)
     travel_mcp_url: str = "http://localhost:8001"
     open_meteo_base_url: str = "https://api.open-meteo.com/v1"
-    duffel_api_key: str = ""
 
 
 @lru_cache

@@ -1,10 +1,8 @@
-"""Transport & stay tools: Duffel flights (key) or labeled demo, FX rates, web search."""
+"""Transport & stay tools: SerpApi Google Flights or labeled demo, FX rates, web search."""
 import os
 
 from travel_mcp.tools.common import get_client, is_demo_mode, meta
 from travel_mcp.tools.maps import _haversine_km  # shared geo math
-
-DUFFEL_URL = "https://api.duffel.com"
 
 # Plausible demo IATA pairs for mock generation (never presented as real prices)
 _DEMO_AIRPORTS = {
@@ -22,7 +20,7 @@ def _mock_transport(origin: str, destination: str, date: str) -> dict:
     base_fare = round(2500 + km * 3.5)
     return {
         **meta("mock", True),
-        "note": "DEMO DATA — synthetic flights; connect a Duffel key for real offers",
+        "note": "DEMO DATA — synthetic flights; configure SERPAPI_API_KEY for real offers",
         "query": {"origin": origin, "destination": destination, "date": date},
         "offers": [
             {
@@ -65,53 +63,129 @@ def _mock_stays(location: str, check_in: str, check_out: str, guests: int) -> di
     }
 
 
-async def search_transport(origin: str, destination: str, date: str) -> dict:
-    """Flight offers for an IATA origin/destination pair on a date (Duffel test mode)."""
-    api_key = os.environ.get("DUFFEL_API_KEY", "").strip()
-    if not api_key:
-        return _mock_transport(origin, destination, date)
+SERPAPI_URL = "https://serpapi.com/search.json"
+
+_CITY_TO_IATA = {
+    "BENGALURU": "BLR",
+    "BANGALORE": "BLR",
+    "GOA": "GOI",
+    "DELHI": "DEL",
+    "NEW DELHI": "DEL",
+    "MUMBAI": "BOM",
+    "BOMBAY": "BOM",
+    "CHENNAI": "MAA",
+    "MADRAS": "MAA",
+    "KOLKATA": "CCU",
+    "CALCUTTA": "CCU",
+    "HYDERABAD": "HYD",
+    "KOCHI": "COK",
+    "COCHIN": "COK",
+    "AHMEDABAD": "AMD",
+    "PUNE": "PNQ",
+    "JAIPUR": "JAI",
+    "PARIS": "CDG",
+    "AUSTIN": "AUS",
+    "LONDON": "LHR",
+    "NEW YORK": "JFK",
+    "SAN FRANCISCO": "SFO",
+    "DUBAI": "DXB",
+    "SINGAPORE": "SIN",
+    "TOKYO": "HND",
+    "BANGKOK": "BKK",
+}
+
+
+def _to_iata(val: str) -> str:
+    cleaned = (val or "").strip().upper()
+    if len(cleaned) == 3 and cleaned.isalpha():
+        return cleaned
+    return _CITY_TO_IATA.get(cleaned, cleaned)
+
+
+async def _search_serpapi_flights(
+    origin: str, destination: str, date: str, api_key: str
+) -> dict | None:
+    """Fetch live flight offers from SerpApi Google Flights."""
+    dep_iata = _to_iata(origin)
+    arr_iata = _to_iata(destination)
+
     try:
-        resp = await get_client().post(
-            f"{DUFFEL_URL}/air/offer_requests?return_offers=true",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Duffel-Version": "v2",
-                "Accept": "application/json",
+        resp = await get_client().get(
+            SERPAPI_URL,
+            params={
+                "engine": "google_flights",
+                "departure_id": dep_iata,
+                "arrival_id": arr_iata,
+                "outbound_date": date,
+                "currency": "INR",
+                "type": "2",  # One-way
+                "api_key": api_key,
             },
-            json={
-                "data": {
-                    "slices": [{"origin": origin.upper(), "destination": destination.upper(), "departure_date": date}],
-                    "passengers": [{"type": "adult"}],
-                    "cabin_class": "economy",
-                }
-            },
+            timeout=20.0,
         )
         resp.raise_for_status()
         data = resp.json()
-    except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": f"flight search failed: {exc}"}
+    except Exception:  # noqa: BLE001
+        return None
+
+    raw_flights = data.get("best_flights", []) + data.get("other_flights", [])
+    if not raw_flights:
+        return None
 
     offers = []
-    for offer in (data.get("data", {}) or {}).get("offers", [])[:10]:
-        slices = offer.get("slices", [{}])
-        segs = slices[0].get("segments", [{}])
-        offers.append(
-            {
-                "id": offer.get("id"),
-                "airline": (offer.get("owner") or {}).get("name"),
-                "departure_at": segs[0].get("departing_at"),
-                "arrival_at": segs[-1].get("arriving_at"),
-                "duration_minutes": int(slices[0].get("duration", "PT0S")[2:-1] or 0) // 60
-                or None,
-                "price": float(offer.get("total_amount") or 0),
-                "currency": offer.get("total_currency", "USD"),
-            }
-        )
+    for item in raw_flights[:10]:
+        legs = item.get("flights", [])
+        if not legs:
+            continue
+        first_leg = legs[0]
+        last_leg = legs[-1]
+        airline = first_leg.get("airline") or item.get("airline") or "Airline"
+        flight_no = first_leg.get("flight_number") or ""
+        dep_time = (first_leg.get("departure_airport") or {}).get("time", "")
+        arr_time = (last_leg.get("arrival_airport") or {}).get("time", "")
+
+        offers.append({
+            "id": flight_no or f"serp-{len(offers) + 1}",
+            "airline": f"{airline} ({flight_no})" if flight_no else airline,
+            "departure_at": (
+                dep_time.replace(" ", "T") + ":00"
+                if dep_time and "T" not in dep_time
+                else dep_time
+            ),
+            "arrival_at": (
+                arr_time.replace(" ", "T") + ":00"
+                if arr_time and "T" not in arr_time
+                else arr_time
+            ),
+            "duration_minutes": item.get("total_duration") or first_leg.get("duration"),
+            "price": float(item.get("price") or 0),
+            "currency": "INR",
+        })
+
+    if not offers:
+        return None
+
     return {
-        **meta("duffel", False),
+        **meta("serpapi", False),
         "query": {"origin": origin, "destination": destination, "date": date},
         "offers": offers,
     }
+
+
+async def search_transport(origin: str, destination: str, date: str) -> dict:
+    """Flight offers for an origin/destination pair on a date (SerpApi Google Flights or labeled mock)."""
+    if is_demo_mode():
+        return _mock_transport(origin, destination, date)
+
+    # 1. Try SerpApi (Google Flights) if configured
+    serpapi_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+    if serpapi_key:
+        serp_result = await _search_serpapi_flights(origin, destination, date, serpapi_key)
+        if serp_result:
+            return serp_result
+
+    # 2. Transparent fallback to realistic physics-based mock transport
+    return _mock_transport(origin, destination, date)
 
 
 async def search_stays(

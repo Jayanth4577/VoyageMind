@@ -31,7 +31,7 @@ The system is three deployable pieces plus managed infrastructure:
 
    | Key | Value |
    |---|---|
-   | `DUFFEL_API_KEY` | your Duffel test key (optional; demo flights until set) |
+   | `SERPAPI_API_KEY` | your SerpApi key (optional; Google Flights search; demo flights until set) |
    | `TAVILY_API_KEY` | your Tavily key (optional; search says "no_provider" until set) |
    | `TRAVEL_MCP_DEMO_MODE` | leave unset in production (set `1` only for demos) |
 
@@ -98,4 +98,4 @@ backend, gateway, frontend) on one machine — simplest full-stack demo host.
 | Neon Postgres / Upstash Redis | yes |
 | Gemini API | generous free tier |
 | Open-Meteo / OSRM / Nominatim / Overpass | free, no key |
-| Duffel | free test mode |
+| SerpApi (Google Flights) | 100 free searches / month |

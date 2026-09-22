@@ -18,7 +18,7 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 0.2 `docker-compose.yml` with PostgreSQL, Redis, backend, frontend, mcp-server
 - [x] 0.3 Backend scaffold: FastAPI `app/main.py`, `core/config.py` (pydantic-settings, env vars), `core/database.py`, `core/logging.py` (structured logs w/ request IDs), `core/security.py`
 - [x] 0.4 Frontend scaffold: Next.js App Router + TypeScript, `components/ services/ hooks/ types/ utils/` folders
-- [x] 0.5 `.env.example` for all keys (Gemini/OpenAI, Open-Meteo, Mapbox/OSM, Duffel); secrets never reach frontend
+- [x] 0.5 `.env.example` for all keys (Gemini/OpenAI, Open-Meteo, Mapbox/OSM, SerpApi); secrets never reach frontend
 - [x] 0.6 CI script: lint + pytest + frontend build
 
 ## Phase 1 — Foundation (Domain Models & Trip CRUD) ✅ (30/30 tests pass, e2e smoke verified over HTTP)
@@ -48,7 +48,7 @@ A production-quality prototype of an **AI Travel Copilot workspace** (not just a
 - [x] 3.1 `travel-mcp-server/` (MCP 2.x `MCPServer`, streamable-HTTP, stateless) + backend `mcp/client.py` speaking the real MCP protocol (initialize → call_tool, structured-content unwrap, degrade-to-`unavailable`)
 - [x] 3.2 Weather MCP (Open-Meteo): current + multi-day forecast, rain probability, precipitation, WMO rain-code flagging, best-effort air quality (US AQI); honest note that the provider has no severe-alert feed
 - [x] 3.3 Maps MCP: geocoding (Open-Meteo geocoder), `calculate_route` with real road distance/duration (OSRM), `search_places` (Nominatim), `find_nearby_places` (Overpass, 7 categories), `get_place_details` (Nominatim lookup)
-- [x] 3.4 Flight/Transport MCP: Duffel offer search when `DUFFEL_API_KEY` set, clearly-labeled demo offers otherwise; provider isolated behind the tool interface
+- [x] 3.4 Flight/Transport MCP: SerpApi (Google Flights) search when `SERPAPI_API_KEY` set, clearly-labeled demo offers otherwise; provider isolated behind the tool interface
 - [x] 3.5 `search_stays`: provider-replaceable interface with labeled demo stays until a stays provider is integrated
 - [x] 3.6 Currency tool (open.er-api.com) — failures return `unavailable`, never a fabricated rate
 - [x] 3.7 Web search tool: Tavily-compatible when `TAVILY_API_KEY` set; otherwise honest `no_provider` (results are never fabricated)

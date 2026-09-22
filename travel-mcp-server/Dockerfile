@@ -3,9 +3,8 @@ FROM python:3.12-slim
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir .
-
 COPY travel_mcp ./travel_mcp
+RUN pip install --no-cache-dir .
 
 EXPOSE 8001
 ENV MCP_PORT=8001
