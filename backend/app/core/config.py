@@ -3,6 +3,8 @@
 All secrets come from environment variables / .env — never hard-coded.
 """
 
+import ast
+import json
 from functools import lru_cache
 
 from pydantic import field_validator
@@ -44,7 +46,30 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: str | list[str] = ["http://localhost:3000"]
+
+    @field_validator("cors_origins", mode="after")
+    @classmethod
+    def normalize_cors_origins(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return ["http://localhost:3000"]
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+                try:
+                    parsed = ast.literal_eval(v)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
+            return [x.strip() for x in v.split(",") if x.strip()]
+        return v
 
     # Rate limiting (in-memory, per-IP; auth endpoints get a stricter budget)
     rate_limit_enabled: bool = True

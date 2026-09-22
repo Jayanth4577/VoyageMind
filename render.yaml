@@ -13,6 +13,8 @@ services:
     dockerContext: ./travel-mcp-server
     plan: free
     envVars:
+      - key: PORT
+        value: 8001
       - key: MCP_PORT
         value: 8001
       - key: SERPAPI_API_KEY
@@ -28,6 +30,8 @@ services:
     dockerContext: ./backend
     plan: free
     envVars:
+      - key: PORT
+        value: 8000
       - key: DATABASE_URL
         fromDatabase:
           name: voyagemind-db
@@ -43,9 +47,6 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: TRAVEL_MCP_URL
-        fromService:
-          type: web
-          name: voyagemind-mcp
-          property: host
+        value: http://voyagemind-mcp:8001
       - key: CORS_ORIGINS
         sync: false
