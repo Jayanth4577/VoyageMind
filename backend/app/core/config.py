@@ -5,11 +5,29 @@ All secrets come from environment variables / .env — never hard-coded.
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @field_validator("database_url", mode="after")
+    @classmethod
+    def normalize_db_url(cls, v: str) -> str:
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+psycopg://", 1)
+        if v.startswith("postgresql://") and not v.startswith("postgresql+psycopg://"):
+            return v.replace("postgresql://", "postgresql+psycopg://", 1)
+        return v
+
+    @field_validator("travel_mcp_url", mode="after")
+    @classmethod
+    def normalize_mcp_url(cls, v: str) -> str:
+        v = v.strip()
+        if v and not v.startswith(("http://", "https://")):
+            return f"http://{v}"
+        return v
 
     # App
     app_name: str = "VoyageMind API"
