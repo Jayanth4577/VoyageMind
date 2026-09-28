@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/Timeline/Timeline";
 import AddActivityDialog from "@/components/ItineraryBuilder/AddActivityDialog";
 import { tripsApi } from "@/services/trips";
+import { copilotApi } from "@/services/copilot";
 import type { Activity, ConflictIssue, ItineraryDay } from "@/types";
 
 interface Props {
@@ -97,6 +98,27 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
     () => issues.filter((i) => i.severity === "warning").length,
     [issues],
   );
+  const isEmpty =
+    !busy && days.length > 0 && days.every((d) => d.activities.length === 0);
+
+  async function generateWithAi() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await copilotApi.generate(tripId);
+      if (res.status === "error") {
+        setError(res.reasoning || "AI planning failed");
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? `AI planning unavailable: ${e.message}. Add activities manually with the + button.`
+          : "AI planning unavailable",
+      );
+    } finally {
+      reload();
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -157,6 +179,22 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
               🤖 Ask AI to fix this
             </button>
           )}
+        </div>
+      )}
+
+      {isEmpty && (
+        <div className="rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+          <span className="text-2xl">🌱</span>
+          <p className="mt-2 text-sm font-medium">Your itinerary is empty.</p>
+          <p className="mt-0.5 text-xs text-inksoft">
+            Start with AI, or use the + Add button on any day to build it yourself.
+          </p>
+          <button
+            onClick={generateWithAi}
+            className="mt-4 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-primary/25 transition hover:opacity-90"
+          >
+            🤖 Generate with AI
+          </button>
         </div>
       )}
 

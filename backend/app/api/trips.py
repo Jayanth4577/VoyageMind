@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from app.api.deps import CurrentUser, DbSession
 from app.models import ItineraryDay, Trip
 from app.schemas.trip_schema import TripCreate, TripListOut, TripOut, TripUpdate
+from app.services.trip_service import resolve_trip_coordinates
 
 router = APIRouter(prefix="/trips", tags=["trips"])
 
@@ -84,3 +85,24 @@ def delete_trip(trip_id: str, user: CurrentUser, db: DbSession) -> None:
     # recommendations, events, …) cascade via relationship rules.
     db.delete(trip)
     db.commit()
+
+
+@router.get("/{trip_id}/geocode")
+async def geocode_trip(trip_id: str, user: CurrentUser, db: DbSession) -> dict:
+    """Resolve the trip destination to coordinates (persists them on first use)."""
+    trip = _owned_trip(trip_id, user, db)
+    coords = await resolve_trip_coordinates(db, trip)
+    if coords is None:
+        from fastapi import HTTPException as _HTTPException
+
+        raise _HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Could not resolve destination '{trip.destination_name}'",
+        )
+    latitude, longitude = coords
+    return {
+        "trip_id": trip.id,
+        "destination_name": trip.destination_name,
+        "latitude": latitude,
+        "longitude": longitude,
+    }

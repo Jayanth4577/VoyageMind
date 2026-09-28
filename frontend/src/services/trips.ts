@@ -1,6 +1,9 @@
 /** Typed wrappers for the backend API (spec §24 surface). */
 import { api } from "./api";
-import type { BudgetSummary, ConflictReport, ItineraryDay, Trip } from "@/types";
+import type { BudgetSummary, ConflictReport, ItineraryDay } from "@/types";
+
+export type { BudgetSummary, ConflictReport, ItineraryDay, Trip } from "@/types";
+import type { Trip } from "@/types";
 
 export interface TripInput {
   title?: string;
@@ -56,6 +59,22 @@ export const tripsApi = {
     api.post<ItineraryDay>(`/trips/${tripId}/days/${dayId}/reorder`, { activity_ids: activityIds }),
 
   budget: (tripId: string) => api.get<BudgetSummary>(`/trips/${tripId}/budget`),
+  budgetItems: (tripId: string) =>
+    api.get<
+      {
+        id: string;
+        category: string;
+        label: string;
+        amount: number;
+        currency: string;
+        source_ref: string;
+      }[]
+    >(`/trips/${tripId}/budget/items`),
+  addBudgetItem: (
+    tripId: string,
+    body: { category: string; label?: string; amount: number; currency?: string },
+  ) => api.post<{ id: string }>(`/trips/${tripId}/budget`, body),
+  deleteBudgetItem: (itemId: string) => api.delete<void>(`/budget-items/${itemId}`),
   checkConflicts: (tripId: string) =>
     api.post<ConflictReport>(`/trips/${tripId}/check-conflicts`),
 };

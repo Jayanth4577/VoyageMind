@@ -51,3 +51,14 @@ def delete_budget_item(item_id: str, user: CurrentUser, db: DbSession) -> None:
         )
     db.delete(item)
     db.commit()
+
+
+@router.get("/trips/{trip_id}/budget/items", response_model=list[BudgetItemOut])
+def list_budget_items(trip_id: str, user: CurrentUser, db: DbSession) -> list[BudgetItem]:
+    trip = get_owned_trip(db, trip_id, user)
+    return (
+        db.query(BudgetItem)
+        .filter(BudgetItem.trip_id == trip.id)
+        .order_by(BudgetItem.created_at)
+        .all()
+    )

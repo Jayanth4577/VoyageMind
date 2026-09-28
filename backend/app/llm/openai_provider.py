@@ -12,7 +12,8 @@ class OpenAIProvider(LLMProvider):
     name = "openai"
 
     def __init__(self, **kwargs) -> None:
-        kwargs.setdefault("base_url", DEFAULT_BASE_URL)
+        if not kwargs.get("base_url"):
+            kwargs["base_url"] = DEFAULT_BASE_URL
         kwargs.setdefault("model", DEFAULT_MODEL)
         super().__init__(**kwargs)
         if not self.api_key:

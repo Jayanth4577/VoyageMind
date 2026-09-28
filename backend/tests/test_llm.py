@@ -84,3 +84,24 @@ def test_http_error_wrapped_as_llm_error():
 def test_openai_requires_api_key():
     with pytest.raises(LLMError):
         OpenAIProvider(base_url="http://fake", client=httpx.AsyncClient())
+
+
+def test_gemini_factory_defaults_base_url(monkeypatch):
+    """Regression: empty base_url must fall back to the adapter default,
+    not produce a protocol-less request URL (Render deployment bug)."""
+    from app.core.config import settings
+    from app.llm.gemini_provider import DEFAULT_BASE_URL
+
+    monkeypatch.setattr(settings, "gemini_api_key", "test-key")
+    provider = get_llm_provider("gemini")
+    assert provider.base_url == DEFAULT_BASE_URL
+    assert provider.base_url.startswith("https://")
+
+
+def test_openai_factory_defaults_base_url(monkeypatch):
+    from app.core.config import settings
+    from app.llm.openai_provider import DEFAULT_BASE_URL
+
+    monkeypatch.setattr(settings, "openai_api_key", "test-key")
+    provider = get_llm_provider("openai")
+    assert provider.base_url == DEFAULT_BASE_URL
