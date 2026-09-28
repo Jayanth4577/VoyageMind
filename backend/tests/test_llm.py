@@ -1,8 +1,7 @@
-import json as _json
-
 """LLM abstraction tests: factory selection + adapters via httpx.MockTransport."""
 
 import asyncio
+import json
 
 import httpx
 import pytest
@@ -139,7 +138,7 @@ def test_gemini_404_falls_back_to_available_model(monkeypatch):
                 },
             )
         if ":generateContent" in url:
-            body = _json.loads(request.read())
+            body = json.loads(request.read())
             is_probe = body["contents"][0]["parts"][0]["text"] == "ping"
             if "gemini-flash-latest" in url and not is_probe:
                 calls["generate"] += 1
@@ -245,7 +244,7 @@ def test_gemini_quota_hops_to_alternate_model(monkeypatch):
                 },
             )
         if ":generateContent" in url:
-            body = _json.loads(request.read())
+            body = json.loads(request.read())
             if body["contents"][0]["parts"][0]["text"] == "ping":
                 return httpx.Response(
                     200, json={"candidates": [{"content": {"parts": [{"text": "pong"}]}}]}
