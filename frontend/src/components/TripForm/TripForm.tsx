@@ -229,8 +229,9 @@ export default function TripForm({ onCreated }: { onCreated?: () => void }) {
           </label>
         </div>
 
-        {/* 2×2 on narrow sidebars, 4-across on wide screens */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* Always 2×2 — this form lives in a narrow sidebar column, and
+            viewport-based sm:/lg: breakpoints would still cram 4 across. */}
+        <div className="grid grid-cols-2 gap-3">
           <label className="block text-xs text-inksoft">
             Travelers
             <input
