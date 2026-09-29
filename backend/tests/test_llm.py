@@ -211,7 +211,8 @@ def test_gemini_persistent_503_raises_after_retries(monkeypatch):
     import app.llm.gemini_provider as gp
 
     monkeypatch.setattr(gp, "RETRY_BACKOFF_SECONDS", 0)
-    with pytest.raises(LLMError, match="after 3 attempts"):
+    # everything is down (generation AND discovery) -> a structured LLMError
+    with pytest.raises(LLMError):
         asyncio.run(provider.generate("hi"))
 
 
@@ -267,3 +268,55 @@ def test_gemini_quota_hops_to_alternate_model(monkeypatch):
     assert answer == "hopped!"
     assert provider.model == "gemini-flash-lite-latest"
     assert provider._hopped_models is True
+
+
+def test_gemini_persistent_503_also_hops(monkeypatch):
+    """Regression (deployed): persistent 503s must trigger the model hop too."""
+    import asyncio
+
+    import httpx
+
+    from app.llm.gemini_provider import GeminiProvider
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if url.endswith("/models") and request.method == "GET":
+            return httpx.Response(
+                200,
+                json={
+                    "models": [
+                        {
+                            "name": "models/gemini-flash-latest",
+                            "supportedGenerationMethods": ["generateContent"],
+                        },
+                        {
+                            "name": "models/gemini-flash-lite-latest",
+                            "supportedGenerationMethods": ["generateContent"],
+                        },
+                    ]
+                },
+            )
+        if ":generateContent" in url:
+            import json
+
+            body = json.loads(request.read())
+            if body["contents"][0]["parts"][0]["text"] == "ping":
+                return httpx.Response(
+                    200, json={"candidates": [{"content": {"parts": [{"text": "pong"}]}}]}
+                )
+            if "flash-latest:" in url:
+                return httpx.Response(503, text="overloaded")
+            return httpx.Response(
+                200, json={"candidates": [{"content": {"parts": [{"text": "recovered"}]}}]}
+            )
+        return httpx.Response(404)
+
+    provider = GeminiProvider(
+        api_key="test", client=httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    )
+    import app.llm.gemini_provider as gp
+
+    monkeypatch.setattr(gp, "RETRY_BACKOFF_SECONDS", 0)
+    answer = asyncio.run(provider.generate("hi"))
+    assert answer == "recovered"
+    assert provider.model == "gemini-flash-lite-latest"

@@ -169,37 +169,35 @@ class GeminiProvider(LLMProvider):
             except httpx.HTTPError as exc:
                 raise LLMError(f"Gemini call failed: {exc}") from exc
 
-        # Quota is enforced PER MODEL on the free tier — when retries are spent
-        # on a quota error, hop to a different model's pool once.
+        # When retries are spent, try a different verified model once: quota is
+        # enforced PER MODEL (429), and persistent 503s are often model-specific
+        # overload — a probe-verified alternate model cures both.
         if last_error is not None and not self._hopped_models:
-            if "429" in str(last_error):
-                alternative = await self._alternate_model(self.model)
-                if alternative is not None:
-                    logger.warning(
-                        "Gemini quota exhausted for '%s'; hopping to '%s'",
-                        self.model,
-                        alternative,
-                    )
-                    self._hopped_models = True
-                    self.model = alternative
-                    url = f"{self.base_url}/models/{self.model}:generateContent"
-                    for attempt in range(TRANSIENT_RETRIES):
-                        try:
-                            resp = await self.client().post(
-                                url, json=body, headers={"x-goog-api-key": self.api_key}
-                            )
-                            resp.raise_for_status()
-                            return resp.json()
-                        except httpx.HTTPStatusError as exc:
-                            if exc.response.status_code in TRANSIENT_STATUS_CODES:
-                                last_error = exc
-                                await asyncio.sleep(
-                                    _backoff_seconds(exc.response, attempt)
-                                )
-                                continue
-                            raise LLMError(f"Gemini call failed: {exc}") from exc
-                        except httpx.HTTPError as exc:
-                            raise LLMError(f"Gemini call failed: {exc}") from exc
+            alternative = await self._alternate_model(self.model)
+            if alternative is not None:
+                logger.warning(
+                    "Gemini persistent failure on '%s'; hopping to '%s'",
+                    self.model,
+                    alternative,
+                )
+                self._hopped_models = True
+                self.model = alternative
+                url = f"{self.base_url}/models/{self.model}:generateContent"
+                for attempt in range(TRANSIENT_RETRIES):
+                    try:
+                        resp = await self.client().post(
+                            url, json=body, headers={"x-goog-api-key": self.api_key}
+                        )
+                        resp.raise_for_status()
+                        return resp.json()
+                    except httpx.HTTPStatusError as exc:
+                        if exc.response.status_code in TRANSIENT_STATUS_CODES:
+                            last_error = exc
+                            await asyncio.sleep(_backoff_seconds(exc.response, attempt))
+                            continue
+                        raise LLMError(f"Gemini call failed: {exc}") from exc
+                    except httpx.HTTPError as exc:
+                        raise LLMError(f"Gemini call failed: {exc}") from exc
 
         raise LLMError(
             f"Gemini call failed after {TRANSIENT_RETRIES} attempts "
