@@ -96,7 +96,7 @@ def create_app() -> FastAPI:
         from urllib.parse import urlparse
 
         from app.core.database import engine
-        from app.llm.provider import LLMError, get_llm_provider
+        from app.llm import LLMError, get_llm_provider
         from app.mcp.client import TravelMCPClient
 
         gateway_host = None

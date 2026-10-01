@@ -24,3 +24,21 @@ def test_cors_origins_flexible_parsing():
 
     s4 = Settings(cors_origins="")
     assert s4.cors_origins == ["http://localhost:3000"]
+
+
+def test_health_services_diagnostic(client):
+    """The deployment diagnostic must expose config + reachability, never keys."""
+    import re
+
+    res = client.get("/health/services")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "ok"
+    assert isinstance(body["database"]["ok"], bool)
+    assert "configured" in body["llm"]
+    assert "reachable" in body["mcp_gateway"]
+
+    # no secrets leak through the diagnostic
+    assert "AIza" not in res.text
+    assert not re.search(r"AQ\.[A-Za-z0-9_-]{20,}", res.text)
+    assert "postgresql" not in res.text
