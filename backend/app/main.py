@@ -88,6 +88,71 @@ def create_app() -> FastAPI:
     def health() -> dict:
         return {"status": "ok", "app": settings.app_name, "environment": settings.environment}
 
+    @app.get("/health/services", tags=["health"])
+    async def health_services() -> dict:
+        """Deployment diagnostic: what this process is configured with and what
+        it can actually reach. Exposes hosts only — never keys or full URLs with
+        credentials."""
+        from urllib.parse import urlparse
+
+        from app.core.database import engine
+        from app.llm.provider import LLMError, get_llm_provider
+        from app.mcp.client import TravelMCPClient
+
+        gateway_host = None
+        try:
+            gateway_host = urlparse(settings.travel_mcp_url).netloc or None
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Database reachability
+        db_ok = False
+        try:
+            from sqlalchemy import text
+
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            db_ok = True
+        except Exception:  # noqa: BLE001
+            db_ok = False
+
+        # LLM provider configured?
+        llm_configured = False
+        llm_note = ""
+        try:
+            get_llm_provider()
+            llm_configured = True
+        except LLMError as exc:
+            llm_note = str(exc)
+
+        # Gateway reachability over the MCP protocol
+        gateway_ok = False
+        gateway_note = ""
+        try:
+            client = TravelMCPClient()
+            tools = await client.list_tools()
+            gateway_ok = len(tools) > 0
+            if not gateway_ok:
+                gateway_note = "connected but listed no tools"
+        except Exception as exc:  # noqa: BLE001
+            gateway_note = str(exc)[:200]
+
+        return {
+            "status": "ok",
+            "environment": settings.environment,
+            "database": {"ok": db_ok},
+            "llm": {
+                "provider": settings.llm_provider,
+                "configured": llm_configured,
+                **({"note": llm_note} if llm_note else {}),
+            },
+            "mcp_gateway": {
+                "host": gateway_host,
+                "reachable": gateway_ok,
+                **({"note": gateway_note} if gateway_note else {}),
+            },
+        }
+
     @app.get("/health/live", tags=["health"])
     def liveness() -> dict:
         return {"status": "alive"}
