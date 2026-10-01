@@ -1,5 +1,6 @@
 """Analytics endpoint tests — deterministic aggregates."""
 import uuid
+from datetime import date, timedelta
 
 
 def auth_headers(client):
@@ -9,12 +10,15 @@ def auth_headers(client):
 
 
 def make_trip(client, headers, budget=None, dest="Goa"):
+    # Relative to today so the fixture never ages into the past (the
+    # "upcoming trip" logic compares against date.today()).
+    start = date.today() + timedelta(days=5)
     return client.post(
         "/trips",
         json={
             "destination_name": dest,
-            "start_date": "2026-10-01",
-            "end_date": "2026-10-03",
+            "start_date": start.isoformat(),
+            "end_date": (start + timedelta(days=2)).isoformat(),
             "total_budget": budget,
             "currency": "INR",
         },

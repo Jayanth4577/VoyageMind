@@ -4,6 +4,7 @@ Speaks the MCP streamable-HTTP protocol. Every failure degrades to a structured
 "unavailable" response so callers can fall back to cache/mock (spec §25).
 """
 
+import asyncio
 import json
 
 from mcp import ClientSession
@@ -28,20 +29,40 @@ def _unwrap_structured(payload: dict) -> dict:
 
 
 class TravelMCPClient:
-    """Per-call MCP session over streamable HTTP (stateless gateway, cheap handshake)."""
+    """Per-call MCP session over streamable HTTP (stateless gateway, cheap handshake).
+
+    Cold-start retry: on Render's free tier the gateway sleeps when idle and the
+    first connection attempt fails while it wakes — one short retry turns that
+    race into a success instead of a mock-data fallback.
+    """
+
+    COLD_START_RETRY_DELAY_SECONDS = 8.0
 
     def __init__(self, url: str | None = None) -> None:
         self.url = url or _gateway_url()
 
     async def call_tool(self, name: str, arguments: dict | None = None) -> dict:
         try:
-            async with streamable_http_client(self.url) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.call_tool(name, arguments or {})
-        except Exception as exc:  # noqa: BLE001 — degradation is the contract
-            logger.warning("MCP call_tool(%s) unavailable: %s", name, exc)
-            return {"status": "unavailable", "error": str(exc), "is_mock": True}
+            return await self._call_tool_once(name, arguments)
+        except Exception as first_error:  # noqa: BLE001 — degradation is the contract
+            logger.warning(
+                "MCP call_tool(%s) failed once (%s) — retrying in case the "
+                "gateway is waking from idle",
+                name,
+                first_error,
+            )
+            await asyncio.sleep(self.COLD_START_RETRY_DELAY_SECONDS)
+            try:
+                return await self._call_tool_once(name, arguments)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("MCP call_tool(%s) unavailable: %s", name, exc)
+                return {"status": "unavailable", "error": str(exc), "is_mock": True}
+
+    async def _call_tool_once(self, name: str, arguments: dict | None) -> dict:
+        async with streamable_http_client(self.url) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(name, arguments or {})
 
         if getattr(result, "isError", False):
             return {"status": "error", "error": "tool reported failure", "is_mock": True}
