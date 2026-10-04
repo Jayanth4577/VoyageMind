@@ -19,7 +19,7 @@ def _mock_transport(origin: str, destination: str, date: str) -> dict:
     km = _haversine_km(*o, *d) if o and d else 800
     minutes = round(km / 750 * 60) + 45  # cruise 750 km/h + taxi time
     base_fare = round(2500 + km * 3.5)
-    return {
+    response = {
         **meta("mock", True),
         "note": "DEMO DATA — synthetic flights; configure SERPAPI_API_KEY for real offers",
         "query": {"origin": origin, "destination": destination, "date": date},
@@ -40,6 +40,13 @@ def _mock_transport(origin: str, destination: str, date: str) -> dict:
             )
         ],
     }
+    if _to_iata(destination) != destination.strip().upper():
+        route_options = _route_options_for(
+            origin, destination, date, response["offers"], "INR"
+        )
+        if route_options:
+            response["route_options"] = route_options
+    return response
 
 
 def _mock_stays(location: str, check_in: str, check_out: str, guests: int) -> dict:
@@ -167,6 +174,130 @@ def _to_iata(val: str) -> str:
     return _NEAREST_AIRPORT.get(cleaned, cleaned)
 
 
+# Airport context for the flight+road combo (city name + approx coords).
+_AIRPORT_META = {
+    "PNQ": ("Pune", 18.58, 73.92),
+    "GOI": ("Goa (Dabolim)", 15.38, 73.83),
+    "DED": ("Dehradun", 30.19, 78.18),
+    "IXB": ("Bagdogra", 26.68, 88.33),
+    "COK": ("Kochi", 10.15, 76.40),
+    "CJB": ("Coimbatore", 11.03, 77.04),
+    "MYS": ("Mysuru", 12.23, 76.65),
+    "VDY": ("Vidyanagar (Hampi)", 15.05, 76.63),
+    "IXU": ("Aurangabad", 19.86, 75.40),
+    "ATQ": ("Amritsar", 31.71, 74.80),
+    "IXL": ("Leh", 34.14, 77.55),
+    "SXR": ("Srinagar", 33.99, 74.77),
+    "IXZ": ("Port Blair", 11.64, 92.73),
+    "TRV": ("Trivandrum", 8.48, 76.92),
+    "KGM": ("Kathgodam", 29.35, 79.53),
+    "ABR": ("Abu Road", 24.59, 72.78),
+    "GOKA": ("Gokarna", 14.55, 74.31),
+}
+
+# Nearest practical railhead per no-airport destination (factual reference;
+# fares are NOT invented — the card links to IRCTC to check them).
+_NEAREST_RAILWAY = {
+    "MAHABALESHWAR": ("WATHAR", "Wathar (nearest railhead)"),
+    "MAHABALESHWER": ("WATHAR", "Wathar (nearest railhead)"),
+    "MAHABLESHWAR": ("WATHAR", "Wathar (nearest railhead)"),
+    "PANCHGANI": ("WATHAR", "Wathar (nearest railhead)"),
+    "MANALI": ("CDG", "Chandigarh (~250 km)"),
+    "MUSSOORIE": ("DDN", "Dehradun (~35 km)"),
+    "RISHIKESH": ("RKSH", "Rishikesh (direct)"),
+    "HARIDWAR": ("HW", "Haridwar (direct)"),
+    "DARJEELING": ("NJP", "New Jalpaiguri (~70 km)"),
+    "GOKARNA": ("GOKA", "Gokarna Road (~10 km)"),
+    "OOTY": ("MTP", "Mettupalayam (~40 km, Nilgiri Mountain Railway)"),
+    "KODAIKANAL": ("KQZ", "Kodaikanal Road (~80 km)"),
+    "COORG": ("MYS", "Mysuru (~95 km)"),
+    "MADIKERI": ("MYS", "Mysuru (~95 km)"),
+    "HAMPI": ("HPT", "Hosapete (~13 km)"),
+    "SHIMLA": ("KLK", "Kalka (~90 km, heritage toy train)"),
+    "NAINITAL": ("KGM", "Kathgodam (~35 km)"),
+    "MOUNT ABU": ("ABR", "Abu Road (~28 km)"),
+    "UDAIPUR": ("UDZ", "Udaipur City (direct)"),
+    "VARANASI": ("BSB", "Varanasi Jn (direct)"),
+    "JODHPUR": ("JU", "Jodhpur (direct)"),
+    "JAISALMER": ("JSM", "Jaisalmer (direct)"),
+    "KHAJURAHO": ("KURJ", "Khajuraho (direct)"),
+    "RAMESWARAM": ("RMM", "Rameswaram (direct)"),
+    "PONDICHERRY": ("PDY", "Puducherry (direct)"),
+    "PUDUCHERRY": ("PDY", "Puducherry (direct)"),
+    "MYSORE": ("MYS", "Mysuru (direct)"),
+    "MYSURU": ("MYS", "Mysuru (direct)"),
+    "AURANGABAD": ("AWB", "Aurangabad (direct)"),
+    "AJANTA": ("AWB", "Aurangabad (direct)"),
+    "ELLORA": ("AWB", "Aurangabad (direct)"),
+}
+
+
+def _road_estimate(lat1, lng1, lat2, lng2):
+    """Approximate road leg from straight-line distance (labeled as estimate)."""
+    km = round(_haversine_km(lat1, lng1, lat2, lng2) * 1.3, 0)
+    hours = round(km / 35.0, 1)  # conservative for ghat/state roads
+    return int(km), hours
+
+
+def _route_options_for(origin: str, destination: str, date: str, offers: list, currency: str) -> list:
+    """Multimodal route suggestions when the destination has no airport:
+    fly-to-nearest + road, train to the nearest railhead, or a direct bus.
+    Flight prices are live; bus/train fares are not available via free APIs,
+    so those cards link out to the bookers instead of inventing numbers."""
+    dest_code = _to_iata(destination)
+    if destination.strip().upper() not in _NEAREST_AIRPORT:
+        return []  # destination has a real airport; plain flights suffice
+
+    options = []
+
+    best = next((o for o in offers if (o.get("price") or 0) > 0), None)
+    if best is not None:
+        options.append(
+            {
+                "mode": "flight_road",
+                "title": f"Fly {origin} → {_AIRPORT_META.get(dest_code, (dest_code,))[0]}, then road to {destination.title()}",
+                "flight_price": best.get("price"),
+                "currency": currency,
+                "airline": best.get("airline"),
+                "links": {
+                    "flight": (
+                        "https://www.google.com/travel/flights?q="
+                        + f"flights+from+{origin}+to+{_AIRPORT_META.get(dest_code, (dest_code,))[0]}+on+{date}".replace(" ", "+")
+                    ),
+                    "bus": (
+                        f"https://www.redbus.in/search?fromCityName={_AIRPORT_META.get(dest_code, (dest_code,))[0]}"
+                        f"&toCityName={destination}&doj={date[8:]}-{date[5:7]}-{date[:4]}"
+                    ),
+                },
+            }
+        )
+
+    rail = _NEAREST_RAILWAY.get(destination.strip().upper())
+    if rail:
+        _station_code, station_label = rail
+        options.append(
+            {
+                "mode": "train",
+                "title": f"Train {origin} → {station_label}",
+                "links": {"train": "https://www.irctc.co.in/nget/train/search"},
+            }
+        )
+
+    options.append(
+        {
+            "mode": "bus",
+            "title": f"Direct bus {origin} → {destination.title()}",
+            "links": {
+                "bus": (
+                    f"https://www.redbus.in/search?fromCityName={origin}"
+                    f"&toCityName={destination}&doj={date[8:]}-{date[5:7]}-{date[:4]}"
+                )
+            },
+        }
+    )
+    return options
+
+
 async def _search_serpapi_flights(
     origin: str, destination: str, date: str, api_key: str, adults: int = 1
 ) -> dict | None:
@@ -231,19 +362,25 @@ async def _search_serpapi_flights(
     if not offers:
         return None
 
+    nearest_used = _to_iata(destination) != (destination or "").strip().upper()
     note = None
-    if _to_iata(destination) != (destination or "").strip().upper() and destination:
+    if nearest_used and destination:
         note = (
             f"Flights land at the nearest airport ({_to_iata(destination)}) — "
             f"{destination.title()} has none of its own."
         )
 
-    return {
+    response = {
         **meta("serpapi", False),
         "query": {"origin": origin, "destination": destination, "date": date},
         **({"note": note} if note else {}),
         "offers": offers,
     }
+    if nearest_used:
+        route_options = _route_options_for(origin, destination, date, offers, "INR")
+        if route_options:
+            response["route_options"] = route_options
+    return response
 
 
 async def search_transport(

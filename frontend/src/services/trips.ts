@@ -90,6 +90,14 @@ export const tripsApi = {
         price: number | null;
         currency: string;
       }[];
+      route_options?: {
+        mode: "flight_road" | "train" | "bus";
+        title: string;
+        flight_price?: number | null;
+        currency?: string;
+        airline?: string | null;
+        links: Record<string, string>;
+      }[];
     }>(`/trips/${tripId}/transport-options`),
   stayOptions: (tripId: string) =>
     api.get<{

@@ -93,6 +93,7 @@ def mock_nearby(latitude: float, longitude: float, category: str, limit: int = 8
 
 
 def mock_transport(origin: str, destination: str, date: str) -> dict:
+    doj = f"{date[8:]}-{date[5:7]}-{date[:4]}"  # yyyy-mm-dd -> dd-mm-yyyy (RedBus)
     return {
         **_meta(),
         "note": "DEMO DATA — synthetic flights (gateway/provider unavailable)",
@@ -110,6 +111,41 @@ def mock_transport(origin: str, destination: str, date: str) -> dict:
             for i, (airline, dep, arr, price) in enumerate(
                 [("DemoAir", "07:30", "09:00", 3500), ("DemoJet", "14:00", "15:30", 4200)]
             )
+        ],
+        # multimodal guidance rides along so the fallback keeps the same UX
+        "route_options": [
+            {
+                "mode": "flight_road",
+                "title": f"Fly {origin} to the nearest airport, then road to {destination.title()}",
+                "flight_price": 3500,
+                "currency": "INR",
+                "airline": "DemoAir",
+                "links": {
+                    "flight": (
+                        "https://www.google.com/travel/flights?q="
+                        f"flights+from+{origin}+to+{destination}+on+{date}".replace(" ", "+")
+                    ),
+                    "bus": (
+                        f"https://www.redbus.in/search?fromCityName={origin}"
+                        f"&toCityName={destination}&doj={doj}"
+                    ),
+                },
+            },
+            {
+                "mode": "train",
+                "title": f"Train {origin} → nearest railhead (check IRCTC)",
+                "links": {"train": "https://www.irctc.co.in/nget/train/search"},
+            },
+            {
+                "mode": "bus",
+                "title": f"Direct bus {origin} → {destination.title()}",
+                "links": {
+                    "bus": (
+                        f"https://www.redbus.in/search?fromCityName={origin}"
+                        f"&toCityName={destination}&doj={doj}"
+                    )
+                },
+            },
         ],
     }
 

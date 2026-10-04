@@ -155,6 +155,65 @@ export default function TripTransportPage({
             <DemoBanner note={transport.note} />
           </div>
         )}
+
+        {/* Multimodal route suggestions (no-airport destinations) */}
+        {transport && (transport.route_options?.length ?? 0) > 0 && (
+          <div className="mt-4 space-y-2.5">
+            <p className="text-xs font-semibold tracking-wide text-inksoft uppercase">
+              Suggested ways to get there
+            </p>
+            {transport.route_options!.map((route) => {
+              const modeIcon =
+                route.mode === "flight_road" ? "✈️🚌" : route.mode === "train" ? "🚆" : "🚌";
+              const linkLabel =
+                route.mode === "flight_road"
+                  ? "Book flight"
+                  : route.mode === "train"
+                    ? "Check trains on IRCTC"
+                    : "Book bus on RedBus";
+              const link =
+                route.links.flight ?? route.links.train ?? route.links.bus ?? "#";
+              return (
+                <div
+                  key={route.mode + route.title}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-line bg-surface2/60 p-3.5"
+                >
+                  <span className="text-lg">{modeIcon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-ink">{route.title}</p>
+                    {route.mode === "flight_road" && route.flight_price ? (
+                      <p className="text-xs text-inksoft">
+                        from{" "}
+                        <span className="font-mono font-semibold text-primary">
+                          {formatMoney(route.flight_price, route.currency ?? "INR")}
+                        </span>{" "}
+                        + road leg
+                      </p>
+                    ) : (
+                      <p className="text-xs text-inksoft">
+                        {route.mode === "train"
+                          ? "fares vary — check IRCTC for your dates"
+                          : "often the cheapest option for these routes"}
+                      </p>
+                    )}
+                  </div>
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:opacity-90"
+                  >
+                    {linkLabel}
+                  </a>
+                </div>
+              );
+            })}
+            <p className="text-xs text-inksoft/70">
+              Flight prices are live. Bus/train fares aren&apos;t available via free APIs — the
+              buttons open the official bookers with your route pre-filled.
+            </p>
+          </div>
+        )}
         {transport && transport.offers.length === 0 && (
           <p className="mt-3 text-sm text-inksoft">
             No options returned — try the booking links above directly.

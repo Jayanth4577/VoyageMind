@@ -429,3 +429,48 @@ async def test_nearby_destinations_falls_back_to_wikipedia(monkeypatch):
     assert out["results"][0]["distance_km"] < out["results"][1]["distance_km"]
     assert calls.count("wiki") >= 1
     assert "overpass" in calls
+
+@pytest.mark.anyio
+async def test_no_airport_destination_gets_multimodal_route_options(monkeypatch):
+    """Mahabaleshwar has no airport: the response must include flight+road,
+    train, and bus route options — not just flights to nowhere."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        url = str(request.url)
+        if "engine=google_flights" in url:
+            return httpx.Response(200, json=SERPAPI_FLIGHTS_BODY)
+        raise AssertionError(f"unexpected call {url}")
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await transport.search_transport("Hyderabad", "Mahabaleshwer", "2026-12-05", adults=2)
+    routes = out.get("route_options") or []
+    modes = [r["mode"] for r in routes]
+    assert "flight_road" in modes
+    assert "train" in modes
+    assert "bus" in modes
+    flight_road = next(r for r in routes if r["mode"] == "flight_road")
+    assert "Pune" in flight_road["title"]  # routes via the nearest airport
+    assert flight_road["flight_price"] == 5210
+    train = next(r for r in routes if r["mode"] == "train")
+    assert "Wathar" in train["title"]
+    assert train["links"]["train"].startswith("https://www.irctc.co.in")
+    bus = next(r for r in routes if r["mode"] == "bus")
+    assert "redbus.in" in bus["links"]["bus"]
+
+
+@pytest.mark.anyio
+async def test_airport_destination_has_no_route_options(monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "engine=google_flights" in str(request.url):
+            return httpx.Response(200, json=SERPAPI_FLIGHTS_BODY)
+        return httpx.Response(404)
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await transport.search_transport("BLR", "GOA", "2026-12-01")
+    assert not out.get("route_options")  # direct flights: no combo needed
