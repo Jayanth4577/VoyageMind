@@ -10,6 +10,7 @@ const APP_NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "🏠" },
   { href: "/analytics", label: "Analytics", icon: "📊" },
   { href: "/trips", label: "My Trips", icon: "🧳" },
+  { href: "/profile", label: "Profile", icon: "👤" },
 ];
 
 const TRIP_NAV = [

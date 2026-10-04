@@ -6,6 +6,7 @@ from app.models.budget import BudgetItem
 from app.models.contingency import Contingency
 from app.models.event import CopilotMessage, TripEvent
 from app.models.itinerary import Activity, ItineraryDay
+from app.models.password_reset import PasswordResetCode
 from app.models.recommendation import Recommendation
 from app.models.transport import Accommodation, TransportOption
 from app.models.trip import Trip, TripPreference
@@ -19,6 +20,7 @@ __all__ = [
     "Contingency",
     "CopilotMessage",
     "ItineraryDay",
+    "PasswordResetCode",
     "Recommendation",
     "TransportOption",
     "Trip",

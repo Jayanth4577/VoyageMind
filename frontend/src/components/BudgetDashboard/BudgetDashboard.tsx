@@ -5,7 +5,7 @@ import { tripsApi } from "@/services/trips";
 import { BUDGET_CATEGORY_LABELS, formatMoney, type BudgetSummary } from "@/types";
 
 const STATE_STYLES: Record<BudgetSummary["state"], string> = {
-  under: "bg-primarysoft text-primary",
+  under: "bg-successsoft text-success",
   near: "bg-warnsoft text-warn",
   over: "bg-dangersoft text-danger",
   unknown: "bg-surface2 text-inksoft",

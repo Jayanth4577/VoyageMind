@@ -201,7 +201,7 @@ export default function DashboardPage() {
                                 ? "bg-danger"
                                 : t.state === "near"
                                   ? "bg-warn"
-                                  : "bg-primary"
+                                  : "bg-success"
                             }`}
                             style={{ width: `${pct}%` }}
                           />

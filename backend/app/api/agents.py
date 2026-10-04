@@ -21,7 +21,6 @@ from app.schemas.agent_schema import (
     GenerateResponse,
     RecommendationOut,
 )
-from app.services import itinerary_service
 from app.services.trip_service import get_owned_trip
 
 logger = get_logger(__name__)
@@ -149,25 +148,9 @@ async def generate_plan(
     # Persist generated activities
     persisted_count = 0
     if plan and plan.days:
-        day_lookup = {d.day_number: d for d in trip.days}
-        for gen_day in plan.days:
-            matching_day = day_lookup.get(gen_day.day_number)
-            if not matching_day:
-                continue
-            for act in gen_day.activities:
-                act_create = _safe_activity_create(act, matching_day.id)
-                if act_create is None:
-                    continue
-                try:
-                    itinerary_service.add_activity(db, trip, act_create)
-                    persisted_count += 1
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to persist activity %s on day %s: %s",
-                        act.name,
-                        gen_day.day_number,
-                        exc,
-                    )
+        from app.agents.plan_persistence import persist_generated_plan
+
+        persisted_count = persist_generated_plan(db, trip, plan)
 
     # Audit event
     event = TripEvent(
@@ -187,9 +170,21 @@ async def generate_plan(
     trip.status = "planning"
     db.commit()
 
+    # Never report silent success when nothing landed in the itinerary —
+    # the frontend surfaces this so the user can retry.
+    final_status = result.status
+    reasoning = result.reasoning
+    if persisted_count == 0:
+        final_status = "error"
+        reasoning = (
+            "The AI assembled no itinerary activities this time "
+            "(the planner returned an empty plan — often a temporary AI "
+            "provider hiccup). Please try again, or build the trip manually."
+        )
+
     return GenerateResponse(
         trip_id=trip.id,
-        status=result.status,
+        status=final_status,
         plan=plan,
         transport_options=_safe_list(result.data.get("transport")),
         accommodation_options=_safe_list(result.data.get("accommodation")),
@@ -198,7 +193,7 @@ async def generate_plan(
         risks=[],
         contingencies=[],
         tool_calls_count=len(result.tool_calls),
-        reasoning=result.reasoning,
+        reasoning=reasoning,
     )
 
 

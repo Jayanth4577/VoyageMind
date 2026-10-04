@@ -218,7 +218,7 @@ export default function AnalyticsPage() {
                                   ? "bg-warnsoft text-warn"
                                   : t.state === "unknown"
                                     ? "bg-surface2 text-inksoft"
-                                    : "bg-primarysoft text-primary"
+                                    : "bg-successsoft text-success"
                             }`}
                           >
                             {t.state}

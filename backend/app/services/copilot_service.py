@@ -87,6 +87,37 @@ def _extract_suggestions(result_data: dict) -> list[dict] | None:
     return None
 
 
+def _format_recommendations(result_data: dict) -> str | None:
+    """Turn a PlacesAgent result into a readable, helpful answer."""
+    activities = result_data.get("activities")
+    if not activities or not isinstance(activities, list):
+        return None
+    lines = ["Here are places I found for this trip:"]
+    for i, act in enumerate(activities[:8], start=1):
+        if not isinstance(act, dict):
+            continue
+        name = act.get("name") or "Unnamed place"
+        bits = []
+        if act.get("location_name"):
+            bits.append(str(act["location_name"]))
+        if act.get("estimated_cost"):
+            try:
+                bits.append(f"~₹{float(act['estimated_cost']):.0f}")
+            except (TypeError, ValueError):
+                pass
+        if act.get("estimated_duration_minutes"):
+            bits.append(f"~{act['estimated_duration_minutes']} min")
+        line = f"{i}. **{name}**" + (f" ({', '.join(bits)})" if bits else "")
+        if act.get("reason"):
+            line += f" — {act['reason']}"
+        lines.append(line)
+    lines.append(
+        "\nWant any of these added to a specific day? Say e.g. "
+        "\"add the first one to Day 2\" and I'll propose the change for your approval."
+    )
+    return "\n".join(lines)
+
+
 async def handle_message(
     db: Session, trip: Trip, message: str
 ) -> dict:
@@ -133,7 +164,37 @@ async def handle_message(
             "suggestions": None,
         }
 
-    # 4. Extract suggestions
+    # 4. If the agent produced a full plan, PERSIST it into the itinerary —
+    #    plans generated through chat used to be shown as text but never saved.
+    persisted_note = ""
+    plan_data = result.data.get("plan")
+    if isinstance(plan_data, dict) and plan_data.get("days"):
+        try:
+            from app.agents.plan_persistence import persist_generated_plan
+            from app.schemas.agent_schema import GeneratedPlan
+
+            plan = GeneratedPlan.model_validate(plan_data)
+            persisted = persist_generated_plan(db, trip, plan)
+            if persisted:
+                persisted_note = (
+                    f"\n\n✅ I've added {persisted} activities to your itinerary — "
+                    "open the Itinerary page to see and edit them."
+                )
+                trip.status = "planning"
+                db.commit()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Copilot plan persistence failed: %s", exc)
+
+    # 5. Build a genuinely useful reply from structured agent data
+    recommendations_text = _format_recommendations(result.data)
+    if recommendations_text:
+        content = recommendations_text
+    elif persisted_note:
+        content = (result.reasoning or "Here is your plan.") + persisted_note
+    else:
+        content = result.reasoning or "Here is what I found."
+
+    # 6. Extract suggestions
     suggestions = _extract_suggestions(result.data)
     suggestion_id = None
     if suggestions:
@@ -141,10 +202,7 @@ async def handle_message(
         suggestion_id = sugg.get("suggestion_id") or uuid.uuid4().hex[:12]
         sugg["suggestion_id"] = suggestion_id
 
-    # 5. Build response content
-    content = result.reasoning or "Here is what I found."
-
-    # 6. Persist assistant message
+    # 7. Persist assistant message
     msg_data = {
         "agent": result.agent_name,
         "status": result.status,
@@ -163,7 +221,7 @@ async def handle_message(
     )
     db.add(assistant_msg)
 
-    # 7. Audit event
+    # 8. Audit event
     event = TripEvent(
         trip_id=trip.id,
         actor="ai",

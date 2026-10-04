@@ -79,6 +79,14 @@ export const tripsApi = {
     api.post<ConflictReport>(`/trips/${tripId}/check-conflicts`),
 };
 
+export interface Me {
+  id: string;
+  email: string;
+  display_name: string;
+  created_at: string;
+  trip_count: number;
+}
+
 export const authApi = {
   register: (email: string, password: string, displayName: string) =>
     api.post<{ access_token: string }>("/auth/register", {
@@ -88,4 +96,24 @@ export const authApi = {
     }),
   login: (email: string, password: string) =>
     api.post<{ access_token: string }>("/auth/login", { email, password }),
+  me: () => api.get<Me>("/auth/me"),
+  updateMe: (displayName: string) =>
+    api.put<Me>("/auth/me", { display_name: displayName }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post<{ status: string }>("/auth/change-password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  forgotPassword: (email: string) =>
+    api.post<{
+      status: string;
+      message: string;
+      dev_code?: string;
+    }>("/auth/forgot-password", { email }),
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    api.post<{ status: string }>("/auth/reset-password", {
+      email,
+      code,
+      new_password: newPassword,
+    }),
 };

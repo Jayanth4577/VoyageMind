@@ -4,46 +4,48 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Nature palette — moss paper, forest ink */
-  --bg: #f3f6f0;
+  /* Luxury palette — ivory & champagne light theme, maroon & gold brand */
+  --bg: #faf7f1;
   --surface: #ffffff;
-  --surface2: #edf1e8;
-  --line: #dfe6d8;
-  --ink: #1a2620;
-  --inksoft: #64756a;
+  --surface2: #f3ecdf;
+  --line: #e5dccb;
+  --ink: #201512;
+  --inksoft: #82705f;
 
-  --primary: #059669;        /* emerald-600 */
-  --primary-strong: #047857; /* emerald-700 */
-  --primary-soft: #e2f4ea;
-  --accent: #0d9488;         /* teal-600 */
-  --accent-soft: #e0f2f0;
-
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --warn: #b45309;
-  --warn-soft: #fef3c7;
+  --primary: #7b1e3a;        /* deep maroon */
+  --primary-strong: #5d1429;
+  --primary-soft: #f6e7ec;
+  --accent: #a5801d;         /* antique gold */
+  --accent-soft: #f6eed6;
+  --success: #1e7a4d;        /* emerald green */
+  --success-soft: #e2f2e9;
+  --danger: #b3261e;
+  --danger-soft: #fbe5e2;
+  --warn: #c05e10;           /* burnt orange */
+  --warn-soft: #fdeeda;
 
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0c120e;
-  --surface: #131b16;
-  --surface2: #1a241e;
-  --line: #26332b;
-  --ink: #e5ece7;
-  --inksoft: #96a69c;
+  --bg: #100b0d;
+  --surface: #1a1215;
+  --surface2: #241a1e;
+  --line: #38272e;
+  --ink: #f4ece6;
+  --inksoft: #ab9089;
 
-  --primary: #34d399;        /* emerald-400 */
-  --primary-strong: #6ee7b7;
-  --primary-soft: rgba(52, 211, 153, 0.14);
-  --accent: #2dd4bf;
-  --accent-soft: rgba(45, 212, 191, 0.12);
-
-  --danger: #f87171;
-  --danger-soft: rgba(248, 113, 113, 0.14);
-  --warn: #fbbf24;
-  --warn-soft: rgba(251, 191, 36, 0.12);
+  --primary: #c4506f;        /* rose maroon for dark surfaces */
+  --primary-strong: #dd7d99;
+  --primary-soft: rgba(196, 80, 111, 0.16);
+  --accent: #d4af37;         /* bright gold */
+  --accent-soft: rgba(212, 175, 55, 0.13);
+  --success: #34c98a;
+  --success-soft: rgba(52, 201, 138, 0.13);
+  --danger: #f0776d;
+  --danger-soft: rgba(240, 119, 109, 0.14);
+  --warn: #f09b3c;
+  --warn-soft: rgba(240, 155, 60, 0.13);
 
   color-scheme: dark;
 }
@@ -60,11 +62,14 @@
   --color-primarysoft: var(--primary-soft);
   --color-accent: var(--accent);
   --color-accentsoft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-successsoft: var(--success-soft);
   --color-danger: var(--danger);
   --color-dangersoft: var(--danger-soft);
   --color-warn: var(--warn);
   --color-warnsoft: var(--warn-soft);
   --font-sans: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), ui-serif, Georgia, serif;
 }
 
 html {
@@ -74,6 +79,13 @@ html {
 body {
   background: var(--bg);
   color: var(--ink);
+}
+
+/* Display serif for headings — the luxury signature */
+h1,
+h2 {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
+  letter-spacing: -0.01em;
 }
 
 ::selection {

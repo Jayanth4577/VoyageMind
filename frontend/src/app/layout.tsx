@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Sora } from "next/font/google";
+import { Playfair_Display, Sora } from "next/font/google";
 import "./globals.css";
 
 const sora = Sora({
   variable: "--font-sora",
+  subsets: ["latin"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
@@ -18,7 +23,7 @@ const themeInit = `try{var t=localStorage.getItem('vm-theme');var d=t?t==='dark'
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${sora.variable} h-full`} suppressHydrationWarning>
+    <html lang="en" className={`${sora.variable} ${playfair.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

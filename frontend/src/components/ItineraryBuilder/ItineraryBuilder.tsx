@@ -136,7 +136,7 @@ export default function ItineraryBuilder({ tripId, onAskAi }: Props) {
             </span>
           )}
           {conflictCount === 0 && warningCount === 0 && !busy && (
-            <span className="rounded-full bg-primarysoft px-3 py-1 text-primary">
+            <span className="rounded-full bg-successsoft px-3 py-1 text-success">
               ✓ Schedule looks valid
             </span>
           )}

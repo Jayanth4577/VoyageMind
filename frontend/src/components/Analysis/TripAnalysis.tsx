@@ -106,7 +106,7 @@ export default function TripAnalysis({ tripId }: { tripId: string }) {
             </div>
             <p className="mt-2 text-xs text-inksoft">
               {budgetPct}% of budget used ·{" "}
-              <span className={budget.remaining !== null && budget.remaining < 0 ? "text-danger" : "text-primary"}>
+              <span className={budget.remaining !== null && budget.remaining < 0 ? "text-danger" : "text-success"}>
                 {formatMoney(Math.abs(budget.remaining ?? 0), budget.currency)}{" "}
                 {(budget.remaining ?? 0) < 0 ? "over" : "remaining"}
               </span>

@@ -124,8 +124,8 @@ class PlannerAgent:
 
         # Truncate large data sections to fit in LLM context
         places_str = json.dumps(results.get("places", {}), indent=2, default=str)
-        if len(places_str) > 4000:
-            places_str = places_str[:4000] + "\n... (truncated)"
+        if len(places_str) > 6000:
+            places_str = places_str[:6000] + "\n... (truncated)"
         weather_str = json.dumps(results.get("weather", {}), indent=2, default=str)
         if len(weather_str) > 2000:
             weather_str = weather_str[:2000] + "\n... (truncated)"
@@ -187,9 +187,17 @@ Generate days 1 through {n_days}. Use ONLY the places and data provided above.
 """
 
         try:
-            return await self._llm.generate_structured(
+            plan = await self._llm.generate_structured(
                 prompt, GeneratedPlan, system=ASSEMBLY_SYSTEM
             )
+            if not plan.days:
+                # LLM variance: a single call sometimes returns an empty plan.
+                # One retry costs little and rescues the whole run.
+                logger.info("Assembly returned an empty plan — retrying once")
+                plan = await self._llm.generate_structured(
+                    prompt, GeneratedPlan, system=ASSEMBLY_SYSTEM
+                )
+            return plan
         except LLMError as exc:
             logger.error("Failed to assemble itinerary: %s", exc)
             return GeneratedPlan(days=[], reasoning=f"Assembly failed: {exc}")

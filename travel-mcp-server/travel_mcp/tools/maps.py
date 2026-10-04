@@ -21,6 +21,12 @@ OVERPASS_FILTERS = {
     "beach": 'node["natural"="beach"]',
     "temple": 'node["amenity"="place_of_worship"]',
     "market": 'node["amenity"="marketplace"]',
+    "viewpoint": 'node["tourism"="viewpoint"]',
+    "garden": 'node["leisure"="garden"]',
+    "waterfall": 'node["natural"="waterfall"]',
+    "monument": 'node["historic"="monument"]',
+    "artwork": 'node["tourism"="artwork"]',
+    "zoo": 'node["tourism"="zoo"]',
 }
 
 

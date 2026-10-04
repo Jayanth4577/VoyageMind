@@ -68,18 +68,49 @@ class MasterAgent:
             )
 
     async def _parse_intent(self, context: AgentContext) -> str:
-        """Use LLM to classify intent from user request."""
+        """Use LLM to classify intent from user request, with a keyword fallback."""
         request = context.request
         if not request:
             return "generate"
 
+        # Keyword heuristic first — fast, deterministic, and catches the common
+        # phrasings the LLM sometimes mis-routes (e.g. "suggest some places"
+        # landing on generate and replying with a whole itinerary).
+        lowered = request.lower()
+        suggest_words = (
+            "suggest", "recommend", "places to", "places near",
+            "things to do", "nearby", "restaurants", "attractions",
+        )
+        plan_words = ("itinerary", "plan my", "full plan", "generate")
+        if any(k in lowered for k in suggest_words) and not any(
+            k in lowered for k in plan_words
+        ):
+            return "recommend"
+        budget_words = ("budget", "cheaper", "reduce cost", "too expensive", "save money")
+        if any(k in lowered for k in budget_words):
+            return "optimize_budget"
+        if any(k in lowered for k in ("rain", "weather", "forecast")):
+            return "check_weather"
+        if any(k in lowered for k in ("realistic", "reorder", "rearrange", "route", "travel time")):
+            return "optimize_route"
+
         prompt = f"""
         Given the user request, classify the intent into one of these categories:
-        - generate: creating or generating a full travel plan/itinerary
+        - generate: creating or regenerating a full travel plan/itinerary
         - optimize_route: optimizing travel routes, rearranging activities for better logistics
         - optimize_budget: reducing costs, checking budget limits, finding cheaper alternatives
         - check_weather: checking for weather conflicts or risks
-        - recommend: recommending places, restaurants, or specific activities without full planning
+        - recommend: recommending places, restaurants, or specific activities WITHOUT full planning
+
+        Examples:
+        "plan a 5 day trip" -> generate
+        "hi" -> generate
+        "suggest some places to visit" -> recommend
+        "recommend places near my hotel" -> recommend
+        "what can I do in the evening?" -> recommend
+        "make this cheaper" -> optimize_budget
+        "will it rain on my trip?" -> check_weather
+        "the schedule looks impossible" -> optimize_route
 
         Request: "{request}"
         """

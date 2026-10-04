@@ -65,7 +65,7 @@ export default function RisksPanel({ tripId }: { tripId: string }) {
         {conflicts === null ? (
           <p className="text-sm text-inksoft">Checking…</p>
         ) : !hasConflicts ? (
-          <p className="mt-2 rounded-lg bg-primarysoft p-3 text-sm text-primary">
+          <p className="mt-2 rounded-lg bg-successsoft p-3 text-sm text-success">
             ✓ No schedule conflicts detected.
           </p>
         ) : (
