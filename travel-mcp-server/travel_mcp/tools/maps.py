@@ -3,6 +3,7 @@ import asyncio
 import itertools
 import logging
 import os
+import time
 
 from travel_mcp.tools.common import USER_AGENT, get_client, is_demo_mode, meta
 from travel_mcp.tools.weather import _mock_weather  # noqa: F401 (re-exported for tests)
@@ -435,8 +436,19 @@ def _wikipedia_geosearch_point(latitude: float, longitude: float, radius_km: int
         f"{WIKIPEDIA_API}?{params}",
         headers={"User-Agent": f"{USER_AGENT} (github.com/Jayanth4577/VoyageMind)"},
     )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        data = json.loads(resp.read())
+    data = None
+    for attempt in range(2):  # one retry for transient rate limits
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                data = json.loads(resp.read())
+            break
+        except urllib.error.HTTPError as exc:
+            if exc.code == 429 and attempt == 0:
+                time.sleep(5)
+                continue
+            raise RuntimeError(f"wikipedia api returned {exc.code}") from exc
+    if data is None:
+        raise RuntimeError("wikipedia api unavailable")
     if "error" in data:
         api_error = data["error"]
         raise RuntimeError(
@@ -476,6 +488,7 @@ def _wikipedia_geosearch_sync(latitude: float, longitude: float, radius_km: int,
             )
         except Exception as exc:  # noqa: BLE001
             wiki_failures.append(f"{type(exc).__name__}: {exc}")
+        time.sleep(1.0)  # pace the grid so Wikipedia's rate limiter stays calm
 
     if not raw and wiki_failures:
         raise RuntimeError(
