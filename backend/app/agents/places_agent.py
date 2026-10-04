@@ -146,19 +146,26 @@ class PlacesAgent:
             for town in (dests.result or {}).get("results") or []:
                 name = (town.get("name") or "").strip()
                 lowered = name.lower()
-                # day trips must be genuinely out of town (>= 5 km)
-                if not name or lowered in seen_names or (town.get("distance_km") or 0) < 5:
+                if not name or lowered in seen_names:
+                    continue
+                km = town.get("distance_km")
+                place_type = (town.get("place_type") or "").lower()
+                is_town = place_type in ("town", "village")
+                # towns must be genuinely out of town (>= 5 km) to be a day trip;
+                # rated attractions from the maps provider are always welcome
+                if is_town and (km or 0) < 5:
                     continue
                 seen_names.add(lowered)
-                km = town.get("distance_km")
                 activities.append(
                     {
                         "name": name,
-                        "category": "DAY_TRIP",
-                        "location_name": f"{km} km from {destination}" if km else destination,
+                        "category": "DAY_TRIP" if is_town else "ATTRACTION",
+                        "location_name": (
+                            f"{km} km from {destination}" if km else destination
+                        ),
                         "latitude": town.get("latitude"),
                         "longitude": town.get("longitude"),
-                        "estimated_duration_minutes": 240,
+                        "estimated_duration_minutes": 240 if is_town else 90,
                         "estimated_cost": 0,
                         "weather_sensitive": True,
                         "indoor": False,

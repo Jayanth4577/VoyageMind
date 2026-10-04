@@ -577,11 +577,20 @@ async def find_nearby_destinations(
     try:
         data = await overpass_query(query)
     except OverpassUnavailableError:
-        # Datacenter IPs are commonly blocked by Overpass; Wikipedia's
-        # geosearch is server-friendly and covers the notable-places need.
+        # Datacenter IPs are commonly blocked by Overpass. Fall through
+        # SerpAPI Google Maps (if a key is configured — datacenter-friendly
+        # and gives the genuinely most-visited places) and then the free
+        # Wikipedia geosearch.
+        serpapi_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+        if serpapi_key:
+            serp = await _search_serpapi_nearby(
+                latitude, longitude, exclude, serpapi_key
+            )
+            if serp is not None:
+                return serp
         logger.warning(
             "Overpass unavailable for nearby destinations at %s,%s — "
-            "falling back to Wikipedia geosearch",
+            "trying Wikipedia geosearch fallback",
             latitude,
             longitude,
         )
@@ -651,4 +660,72 @@ async def find_nearby_destinations(
         **meta("overpass", False),
         "query": {"latitude": latitude, "longitude": longitude, "exclude": exclude},
         "results": results[:limit],
+    }
+
+
+async def _search_serpapi_nearby(
+    latitude: float, longitude: float, exclude: str, api_key: str
+) -> dict | None:
+    """Most-visited places around a destination via SerpAPI Google Maps.
+
+    Datacenter-friendly (SerpAPI is built for server use), and the results are
+    ranked by real visitation — exactly the 'Panchgani and other famous spots'
+    signal. Returns the standard results shape or None to let other fallbacks
+    try.
+    """
+    from travel_mcp.tools.transport import SERPAPI_URL  # reuse the base URL
+
+    try:
+        resp = await get_client().get(
+            SERPAPI_URL,
+            params={
+                "engine": "google_maps",
+                "type": "search",
+                "q": f"tourist attractions near {exclude}",
+                "ll": f"@{latitude},{longitude},13z",
+                "api_key": api_key,
+            },
+            timeout=25.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("serpapi nearby failed: %s", exc)
+        return None
+
+    if data.get("error"):
+        logger.warning("serpapi nearby error: %s", str(data["error"])[:200])
+        return None
+
+    results = []
+    for place in (data.get("local_results") or [])[:10]:
+        name = (place.get("title") or "").strip()
+        if not name or name.lower() == exclude.strip().lower():
+            continue
+        gps = place.get("gps_coordinates") or {}
+        lat, lng = gps.get("latitude"), gps.get("longitude")
+        address = place.get("address") or ""
+        results.append(
+            {
+                "name": name,
+                "place_type": (place.get("type") or "attraction").lower().replace(" ", "_"),
+                "latitude": lat,
+                "longitude": lng,
+                "distance_km": round(
+                    _haversine_km(latitude, longitude, lat, lng), 1
+                )
+                if lat is not None and lng is not None
+                else None,
+                "population": None,
+                "rating": place.get("rating"),
+                "address": address,
+            }
+        )
+    if not results:
+        return None
+    results.sort(key=lambda r: r["distance_km"] if r["distance_km"] is not None else 9999)
+    return {
+        **meta("serpapi", False),
+        "query": {"latitude": latitude, "longitude": longitude, "exclude": exclude},
+        "results": results,
     }
