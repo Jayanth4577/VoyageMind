@@ -437,6 +437,11 @@ def _wikipedia_geosearch_point(latitude: float, longitude: float, radius_km: int
     )
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read())
+    if "error" in data:
+        api_error = data["error"]
+        raise RuntimeError(
+            f"wikipedia api error {api_error.get('code')}: {api_error.get('info')}"
+        )
     return (data.get("query") or {}).get("geosearch", [])
 
 
@@ -446,22 +451,37 @@ def _wikipedia_geosearch_sync(latitude: float, longitude: float, radius_km: int,
     The API caps each query at 10 km, so wide sweeps tile the area: the
     center plus 8 compass offsets, deduplicated by title.
     """
-    raw = _wikipedia_geosearch_point(latitude, longitude, radius_km, limit)
-
+    raw: list[dict] = []
+    wiki_failures: list[str] = []
+    points = [(latitude, longitude, radius_km, limit)]
     if radius_km > WIKI_GEOSEARCH_MAX_KM:
         import math
 
         step = radius_km * 0.7
         for bearing in range(0, 360, 45):
             rad = math.radians(bearing)
-            raw.extend(
-                _wikipedia_geosearch_point(
+            points.append(
+                (
                     latitude + step / 111.0 * math.cos(rad),
                     longitude + step / 111.0 * math.sin(rad),
                     WIKI_GEOSEARCH_MAX_KM,
                     max(limit // 2, 3),
                 )
             )
+
+    for point_lat, point_lng, point_radius, point_limit in points:
+        try:
+            raw.extend(
+                _wikipedia_geosearch_point(point_lat, point_lng, point_radius, point_limit)
+            )
+        except Exception as exc:  # noqa: BLE001
+            wiki_failures.append(f"{type(exc).__name__}: {exc}")
+
+    if not raw and wiki_failures:
+        raise RuntimeError(
+            f"wikipedia geosearch failed on all {len(wiki_failures)} grid points; "
+            f"first error: {wiki_failures[0]}"
+        )
 
     results = []
     seen: set[str] = set()
@@ -552,7 +572,19 @@ async def find_nearby_destinations(
             latitude,
             longitude,
         )
-        wiki = await wikipedia_geosearch(latitude, longitude, radius_km, limit * 3)
+        try:
+            wiki = await wikipedia_geosearch(latitude, longitude, radius_km, limit * 3)
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "Wikipedia geosearch fallback failed for %s,%s: %s",
+                latitude,
+                longitude,
+                exc,
+            )
+            return {
+                "status": "error",
+                "error": f"nearby destinations failed: {type(exc).__name__}: {exc}",
+            }
         exclude_lower = exclude.strip().lower()
         wiki_results = []
         for r in wiki.get("results") or []:
