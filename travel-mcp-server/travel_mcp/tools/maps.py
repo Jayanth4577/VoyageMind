@@ -1,4 +1,5 @@
 """Maps tools: geocoding (Open-Meteo/Nominatim), routing (OSRM), places (Overpass)."""
+import asyncio
 import itertools
 import os
 
@@ -16,26 +17,43 @@ OVERPASS_URLS = [
 ]
 
 
-async def overpass_query(query: str) -> dict:
-    """Run an Overpass query, falling back through the public mirrors.
+class OverpassUnavailableError(Exception):
+    """Every Overpass mirror failed for a query."""
 
-    Overpass (especially cold mirrors) routinely takes longer than the shared
-    client's default 10 s cap from datacenter deployments, so these calls get
-    a dedicated 45 s timeout.
+
+async def _post_overpass(url: str, query: str) -> dict:
+    resp = await get_client().post(url, data={"data": query}, timeout=20.0)
+    if resp.status_code in (429, 502, 503, 504):
+        raise ConnectionError(f"{url} returned {resp.status_code}")
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def overpass_query(query: str) -> dict:
+    """Race the Overpass mirrors in parallel and return the first success.
+
+    Sequential fallbacks were too slow for datacenter deployments (each cold
+    mirror could eat 45 s before the next even started, blowing the MCP
+    client's own timeout). Racing keeps worst-case latency at one timeout.
     """
+    tasks = {
+        asyncio.create_task(_post_overpass(url, query)): url for url in OVERPASS_URLS
+    }
     last_error: Exception | None = None
-    for url in OVERPASS_URLS:
-        try:
-            resp = await get_client().post(url, data={"data": query}, timeout=45.0)
-            if resp.status_code in (429, 502, 503, 504):
-                last_error = Exception(f"{url} returned {resp.status_code}")
-                continue
-            resp.raise_for_status()
-            return resp.json()
-        except Exception as exc:  # noqa: BLE001
-            last_error = exc
-            continue
-    raise last_error or Exception("all Overpass endpoints failed")
+    try:
+        for future in asyncio.as_completed(list(tasks)):
+            try:
+                return await future
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
+    finally:
+        for task in tasks:
+            task.cancel()
+    if last_error is not None:
+        raise OverpassUnavailableError(
+            f"all Overpass endpoints failed: {type(last_error).__name__}: {last_error}"
+        )
+    raise OverpassUnavailableError("all Overpass endpoints failed")
 
 # Overpass filter per supported nearby-place category
 OVERPASS_FILTERS = {
