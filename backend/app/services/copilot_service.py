@@ -164,9 +164,12 @@ async def handle_message(
             "suggestions": None,
         }
 
-    # 4. If the agent produced a full plan, PERSIST it into the itinerary —
-    #    plans generated through chat used to be shown as text but never saved.
+    # 4. If the agent produced a full plan, save it — but ONLY onto an empty
+    #    itinerary. If the user already built activities, converting the plan
+    #    into an approval-required suggestion (golden rule: the user always
+    #    approves AI changes to their own itinerary).
     persisted_note = ""
+    suggestions = None
     plan_data = result.data.get("plan")
     if isinstance(plan_data, dict) and plan_data.get("days"):
         try:
@@ -174,14 +177,67 @@ async def handle_message(
             from app.schemas.agent_schema import GeneratedPlan
 
             plan = GeneratedPlan.model_validate(plan_data)
-            persisted = persist_generated_plan(db, trip, plan)
-            if persisted:
-                persisted_note = (
-                    f"\n\n✅ I've added {persisted} activities to your itinerary — "
-                    "open the Itinerary page to see and edit them."
-                )
-                trip.status = "planning"
-                db.commit()
+            has_user_content = any(
+                a.source == "user" and a.user_selected
+                for d in trip.days
+                for a in d.activities
+            )
+            if has_user_content:
+                changes = []
+                for gen_day in plan.days:
+                    for act in gen_day.activities:
+                        if not (act.name or "").strip():
+                            continue
+                        changes.append(
+                            {
+                                "change_type": "add_activity",
+                                "target_day": gen_day.day_number,
+                                "proposed_data": {
+                                    "name": act.name,
+                                    "category": act.category,
+                                    "location_name": act.location_name,
+                                    "latitude": act.latitude,
+                                    "longitude": act.longitude,
+                                    "start_time": act.start_time,
+                                    "end_time": act.end_time,
+                                    "duration_minutes": act.duration_minutes,
+                                    "estimated_cost": act.estimated_cost,
+                                    "weather_sensitive": act.weather_sensitive,
+                                    "indoor": act.indoor,
+                                    "reason": act.reason,
+                                },
+                                "problem": "AI drafted a full itinerary",
+                                "reason": act.reason or f"Day {gen_day.day_number} activity",
+                            }
+                        )
+                if changes:
+                    suggestions = [
+                        {
+                            "suggestion_id": uuid.uuid4().hex[:12],
+                            "changes": changes,
+                            "problem": "AI drafted a full itinerary for this trip",
+                            "reasoning": plan.reasoning or "",
+                            "impact_summary": (
+                                f"{len(changes)} activities across "
+                                f"{len(plan.days)} days — nothing is added "
+                                "until you accept"
+                            ),
+                        }
+                    ]
+                    persisted_note = (
+                        "\n\nYour trip already has activities, so I won't add "
+                        "anything without your approval — review the "
+                        "suggestion below and accept or reject it."
+                    )
+            else:
+                persisted = persist_generated_plan(db, trip, plan)
+                if persisted:
+                    persisted_note = (
+                        f"\n\n✅ I've added {persisted} activities to your itinerary — "
+                        "open the Itinerary page to see and edit them."
+                    )
+                    trip.status = "planning"
+                    db.commit()
         except Exception as exc:  # noqa: BLE001
             logger.warning("Copilot plan persistence failed: %s", exc)
 
@@ -194,9 +250,10 @@ async def handle_message(
     else:
         content = result.reasoning or "Here is what I found."
 
-    # 6. Extract suggestions
-    suggestions = _extract_suggestions(result.data)
+    # 6. Extract agent-native suggestions if the plan path didn't set any
     suggestion_id = None
+    if suggestions is None:
+        suggestions = _extract_suggestions(result.data)
     if suggestions:
         sugg = suggestions[0]
         suggestion_id = sugg.get("suggestion_id") or uuid.uuid4().hex[:12]
