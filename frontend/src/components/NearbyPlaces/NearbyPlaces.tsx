@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "@/services/api";
 import { tripsApi } from "@/services/trips";
 import { osmPlaceUrl } from "@/services/booking";
 import type { ConflictIssue } from "@/types";
@@ -123,7 +122,7 @@ export default function NearbyPlaces({ tripId, days }: Props) {
       {conflict && (
         <div className="mt-3 rounded-xl border border-warn/40 bg-warnsoft p-3.5">
           <p className="text-sm font-medium text-warn">
-            ⚠ "{conflict.name}" clashes with your existing plan on that day:
+            ⚠ &ldquo;{conflict.name}&rdquo; clashes with your existing plan on that day:
           </p>
           <ul className="mt-1 space-y-0.5 text-xs text-ink">
             {conflict.issues.map((i, idx) => (

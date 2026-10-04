@@ -6,8 +6,6 @@ import AppShell from "@/components/AppShell";
 import { getToken } from "@/services/api";
 import { authApi, type Me } from "@/services/trips";
 
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-
 export default function ProfilePage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);

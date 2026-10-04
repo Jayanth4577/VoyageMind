@@ -7,8 +7,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { setToken } from "@/services/api";
 import { authApi } from "@/services/trips";
 
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-
 function passwordProblem(pw: string): string | null {
   if (pw.length < 8) return "Password must be at least 8 characters.";
   if (!/[A-Za-z]/.test(pw)) return "Password must contain at least one letter.";

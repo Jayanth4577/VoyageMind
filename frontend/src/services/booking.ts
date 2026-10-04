@@ -1,10 +1,6 @@
 /** Free booking deep-links — VoyageMind never takes payments; we hand off
  * to public booking sites pre-filled with the trip context. */
 
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
 /** yyyy-mm-dd -> dd-mm-yyyy (RedBus format) */
 function dmy(iso: string): string {
   const [y, m, d] = iso.split("-");
