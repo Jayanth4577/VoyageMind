@@ -7,7 +7,30 @@ from travel_mcp.tools.weather import _mock_weather  # noqa: F401 (re-exported fo
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org"
 OSRM_URL = os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org")
-OVERPASS_URL = os.environ.get("OVERPASS_URL", "https://overpass-api.de/api/interpreter")
+# Primary endpoint + public mirrors — overpass-api.de rate-limits some
+# datacenter IPs (e.g. Render), so every query walks the list on failure.
+OVERPASS_URLS = [
+    os.environ.get("OVERPASS_URL", "https://overpass-api.de/api/interpreter"),
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+]
+
+
+async def overpass_query(query: str) -> dict:
+    """Run an Overpass query, falling back through the public mirrors."""
+    last_error: Exception | None = None
+    for url in OVERPASS_URLS:
+        try:
+            resp = await get_client().post(url, data={"data": query})
+            if resp.status_code in (429, 502, 503, 504):
+                last_error = Exception(f"{url} returned {resp.status_code}")
+                continue
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            continue
+    raise last_error or Exception("all Overpass endpoints failed")
 
 # Overpass filter per supported nearby-place category
 OVERPASS_FILTERS = {
@@ -290,9 +313,7 @@ async def find_nearby_places(
     out center {limit};
     """
     try:
-        resp = await get_client().post(OVERPASS_URL, data={"data": query})
-        resp.raise_for_status()
-        data = resp.json()
+        data = await overpass_query(query)
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "error": f"nearby search failed: {exc}"}
 
@@ -392,9 +413,7 @@ async def find_nearby_destinations(
     out body {limit * 4};
     """
     try:
-        resp = await get_client().post(OVERPASS_URL, data={"data": query})
-        resp.raise_for_status()
-        data = resp.json()
+        data = await overpass_query(query)
     except Exception as exc:  # noqa: BLE001
         return {"status": "error", "error": f"nearby destinations failed: {exc}"}
 
