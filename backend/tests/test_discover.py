@@ -77,10 +77,11 @@ def test_transport_options_passes_trip_context(client, monkeypatch):
     headers = auth_headers(client)
     trip = make_trip(client, headers)
 
-    async def fake_transport(origin, destination, date):
+    async def fake_transport(origin, destination, date, adults=1):
         assert origin == "Pune"
         assert destination == "Mahabaleshwar"
         assert date == "2026-12-05"
+        assert adults == 2
         return {
             "source": "mock",
             "is_mock": True,

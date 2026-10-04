@@ -17,14 +17,16 @@ class FlightMCP:
     def client(self) -> TravelMCPClient:
         return self._client or TravelMCPClient()
 
-    async def search_transport(self, origin: str, destination: str, date: str) -> dict:
-        key = f"transport:{origin.upper()}:{destination.upper()}:{date}"
+    async def search_transport(
+        self, origin: str, destination: str, date: str, adults: int = 1
+    ) -> dict:
+        key = f"transport:{origin.upper()}:{destination.upper()}:{date}:{adults}"
         cached = await redis_client.cache_get_json(key)
         if cached is not None:
             return {**cached, "cached": True}
         live = await self.client().call_tool(
             "search_transport",
-            {"origin": origin, "destination": destination, "date": date},
+            {"origin": origin, "destination": destination, "date": date, "adults": adults},
         )
         if _usable(live):
             if not live.get("is_mock"):

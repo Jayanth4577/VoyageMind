@@ -31,7 +31,7 @@ The system is three deployable pieces plus managed infrastructure:
 
    | Key | Value |
    |---|---|
-   | `SERPAPI_API_KEY` | your SerpApi key (optional; Google Flights search; demo flights until set) |
+   | `SERPAPI_API_KEY` | your SerpApi key (optional; live Google Flights and Hotels search; demo data until set) |
    | `TAVILY_API_KEY` | your Tavily key (optional; search says "no_provider" until set) |
    | `TRAVEL_MCP_DEMO_MODE` | leave unset in production (set `1` only for demos) |
 

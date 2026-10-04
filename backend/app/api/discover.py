@@ -55,7 +55,10 @@ async def transport_options(trip_id: str, user: CurrentUser, db: DbSession) -> d
             "This trip has no origin set — edit the trip to add one",
         )
     result = await travel_mcp.flights.search_transport(
-        trip.origin_name, trip.destination_name, trip.start_date.isoformat()
+        trip.origin_name,
+        trip.destination_name,
+        trip.start_date.isoformat(),
+        adults=max(1, trip.num_travelers),
     )
     return {
         **result,

@@ -92,9 +92,11 @@ async def get_place_details(osm_id: int) -> dict:
 
 
 @mcp.tool()
-async def search_transport(origin: str, destination: str, date: str) -> dict:
-    """Flight offers between IATA airport codes on a date (YYYY-MM-DD)."""
-    return await transport.search_transport(origin, destination, date)
+async def search_transport(
+    origin: str, destination: str, date: str, adults: int = 1
+) -> dict:
+    """Flight offers between origin and destination on a date (YYYY-MM-DD)."""
+    return await transport.search_transport(origin, destination, date, adults=adults)
 
 
 @mcp.tool()

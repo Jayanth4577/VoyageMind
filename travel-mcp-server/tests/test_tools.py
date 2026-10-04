@@ -280,3 +280,104 @@ async def test_demo_mode_transport(monkeypatch):
     out = await transport.search_transport("BLR", "GOI", "2026-10-01")
     assert out["is_mock"] is True
     assert out["offers"][0]["price"] > 0
+
+
+SERPAPI_FLIGHTS_BODY = {
+    "search_metadata": {"id": "x"},
+    "best_flights": [
+        {
+            "price": 5210,
+            "total_duration": 95,
+            "flights": [
+                {
+                    "airline": "IndiGo",
+                    "flight_number": "6E-123",
+                    "duration": 95,
+                    "departure_airport": {"name": "Pune", "id": "PNQ", "time": "2026-12-05 07:30"},
+                    "arrival_airport": {"name": "Goa", "id": "GOI", "time": "2026-12-05 09:05"},
+                }
+            ],
+        }
+    ],
+    "other_flights": [],
+}
+
+SERPAPI_HOTELS_BODY = {
+    "properties": [
+        {
+            "property_id": "p1",
+            "name": "Brightland Resort",
+            "type": "hotel",
+            "rate_per_night": {"lowest": 6400},
+            "overall_rating": 4.4,
+        },
+        {
+            "property_id": "p2",
+            "name": "Valley View Inn",
+            "type": "guest_house",
+            "rate_per_night": {"lowest": 2100},
+            "overall_rating": 4.1,
+        },
+    ]
+}
+
+
+@pytest.mark.anyio
+async def test_serpapi_flights_parse(monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "engine=google_flights" in str(request.url)
+        assert "adults=3" in str(request.url)
+        assert "currency=INR" in str(request.url)
+        return httpx.Response(200, json=SERPAPI_FLIGHTS_BODY)
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await transport.search_transport("Pune", "GOA", "2026-12-05", adults=3)
+    assert out["source"] == "serpapi"
+    assert out["is_mock"] is False
+    offer = out["offers"][0]
+    assert "IndiGo" in offer["airline"]
+    assert offer["price"] == 5210
+    assert offer["currency"] == "INR"
+    assert offer["duration_minutes"] == 95
+
+
+@pytest.mark.anyio
+async def test_serpapi_hotels_parse(monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert "engine=google_hotels" in str(request.url)
+        assert "adults=2" in str(request.url)
+        return httpx.Response(200, json=SERPAPI_HOTELS_BODY)
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await transport.search_stays("Mahabaleshwar", "2026-12-05", "2026-12-07", guests=2)
+    assert out["source"] == "serpapi"
+    assert out["stays"][0]["name"] == "Brightland Resort"
+    assert out["stays"][0]["price_per_night"] == 6400
+
+
+@pytest.mark.anyio
+async def test_serpapi_flight_error_falls_back_to_demo(monkeypatch):
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "serpapi.com" in str(request.url):
+            return httpx.Response(500, text="boom")
+        raise AssertionError("unexpected call")
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setenv("SERPAPI_API_KEY", "test-key")
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await transport.search_transport("BLR", "GOI", "2026-12-01")
+    assert out["is_mock"] is True  # honest labeled fallback
+
+
+def test_city_to_iata_mapping():
+    assert transport._to_iata("Hyderabad") == "HYD"
+    assert transport._to_iata("pune") == "PNQ"
+    assert transport._to_iata("BLR") == "BLR"  # already a code
+    assert transport._to_iata("nowhere") == "NOWHERE"  # passthrough

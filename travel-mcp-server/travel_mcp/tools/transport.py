@@ -1,5 +1,6 @@
 """Transport & stay tools: SerpApi Google Flights or labeled demo, FX rates, web search."""
 import os
+import re
 
 from travel_mcp.tools.common import get_client, is_demo_mode, meta
 from travel_mcp.tools.maps import _haversine_km  # shared geo math
@@ -65,6 +66,16 @@ def _mock_stays(location: str, check_in: str, check_out: str, guests: int) -> di
 
 SERPAPI_URL = "https://serpapi.com/search.json"
 
+
+def _parse_amount(value) -> float | None:
+    """SerpAPI returns prices as formatted strings ('₹7,813'); extract the number."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    digits = re.sub(r"[^0-9.]", "", str(value))
+    return float(digits) if digits else None
+
 _CITY_TO_IATA = {
     "BENGALURU": "BLR",
     "BANGALORE": "BLR",
@@ -103,7 +114,7 @@ def _to_iata(val: str) -> str:
 
 
 async def _search_serpapi_flights(
-    origin: str, destination: str, date: str, api_key: str
+    origin: str, destination: str, date: str, api_key: str, adults: int = 1
 ) -> dict | None:
     """Fetch live flight offers from SerpApi Google Flights."""
     dep_iata = _to_iata(origin)
@@ -119,6 +130,7 @@ async def _search_serpapi_flights(
                 "outbound_date": date,
                 "currency": "INR",
                 "type": "2",  # One-way
+                "adults": max(1, adults),
                 "api_key": api_key,
             },
             timeout=20.0,
@@ -172,7 +184,9 @@ async def _search_serpapi_flights(
     }
 
 
-async def search_transport(origin: str, destination: str, date: str) -> dict:
+async def search_transport(
+    origin: str, destination: str, date: str, adults: int = 1
+) -> dict:
     """Flight offers for an origin/destination pair on a date (SerpApi Google Flights or labeled mock)."""
     if is_demo_mode():
         return _mock_transport(origin, destination, date)
@@ -180,7 +194,9 @@ async def search_transport(origin: str, destination: str, date: str) -> dict:
     # 1. Try SerpApi (Google Flights) if configured
     serpapi_key = os.environ.get("SERPAPI_API_KEY", "").strip()
     if serpapi_key:
-        serp_result = await _search_serpapi_flights(origin, destination, date, serpapi_key)
+        serp_result = await _search_serpapi_flights(
+            origin, destination, date, serpapi_key, adults=adults
+        )
         if serp_result:
             return serp_result
 
@@ -188,11 +204,80 @@ async def search_transport(origin: str, destination: str, date: str) -> dict:
     return _mock_transport(origin, destination, date)
 
 
+async def _search_serpapi_hotels(
+    location: str, check_in: str, check_out: str, guests: int, api_key: str
+) -> dict | None:
+    """Fetch live hotel offers from SerpApi Google Hotels."""
+    try:
+        resp = await get_client().get(
+            SERPAPI_URL,
+            params={
+                "engine": "google_hotels",
+                "q": f"hotels in {location}",
+                "check_in_date": check_in,
+                "check_out_date": check_out,
+                "adults": max(1, guests),
+                "currency": "INR",
+                "api_key": api_key,
+            },
+            timeout=25.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:  # noqa: BLE001
+        return None
+
+    properties = data.get("properties", [])
+    if not properties:
+        return None
+
+    stays = []
+    for prop in properties[:10]:
+        name = (prop.get("name") or "").strip()
+        if not name:
+            continue
+        rate = (prop.get("rate_per_night") or {}).get("lowest")
+        stays.append(
+            {
+                "id": prop.get("property_id") or f"serp-stay-{len(stays) + 1}",
+                "name": name,
+                "location_name": prop.get("nearby_places", [{}])[0].get("name", location)
+                if prop.get("nearby_places")
+                else location,
+                "price_per_night": _parse_amount(rate),
+                "rating": prop.get("overall_rating"),
+                "guests_per_room": max(1, guests),
+                "type": prop.get("type"),
+                "link": prop.get("link"),
+            }
+        )
+
+    if not stays:
+        return None
+
+    return {
+        **meta("serpapi", False),
+        "query": {
+            "location": location,
+            "check_in": check_in,
+            "check_out": check_out,
+            "guests": guests,
+        },
+        "stays": stays,
+    }
+
+
 async def search_stays(
     location: str, check_in: str, check_out: str, guests: int = 2
 ) -> dict:
-    """Accommodation search. Provider is replaceable; demo data until one is configured."""
-    # No free global stays API exists; keep the interface, return labeled demo data.
+    """Accommodation search via SerpApi Google Hotels, or labeled demo data."""
+    serpapi_key = os.environ.get("SERPAPI_API_KEY", "").strip()
+    if not is_demo_mode() and serpapi_key:
+        serp_result = await _search_serpapi_hotels(
+            location, check_in, check_out, guests, serpapi_key
+        )
+        if serp_result:
+            return serp_result
     return _mock_stays(location, check_in, check_out, guests)
 
 
