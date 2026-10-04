@@ -147,6 +147,9 @@ export default function TripTransportPage({
         {!transport && !transportError && (
           <p className="mt-3 text-sm text-inksoft">Loading options…</p>
         )}
+        {transport?.note && !transport.is_mock && (
+          <p className="mt-3 rounded-xl bg-accentsoft p-3 text-sm text-ink">{transport.note}</p>
+        )}
         {transport?.is_mock && transport.note && (
           <div className="mt-3">
             <DemoBanner note={transport.note} />

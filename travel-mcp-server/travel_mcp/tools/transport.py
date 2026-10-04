@@ -76,6 +76,57 @@ def _parse_amount(value) -> float | None:
     digits = re.sub(r"[^0-9.]", "", str(value))
     return float(digits) if digits else None
 
+# Destinations without their own airport -> the practical airport people use
+_NEAREST_AIRPORT = {
+    "MAHABALESHWAR": "PNQ",
+    "MAHABALESHWER": "PNQ",
+    "MAHABLESHWAR": "PNQ",
+    "PANCHGANI": "PNQ",
+    "LONAVALA": "PNQ",
+    "KHANDALA": "PNQ",
+    "SHIRDI": "SAG",
+    "NASHIK": "ISK",
+    "NASEEK": "ISK",
+    "MANALI": "KUU",
+    "SHIMLA": "SLV",
+    "MUSSOORIE": "DED",
+    "RISHIKESH": "DED",
+    "HARIDWAR": "DED",
+    "DARJEELING": "IXB",
+    "GANGTOK": "IXB",
+    "GOKARNA": "GOI",
+    "ALLEPPEY": "COK",
+    "ALAPPUZHA": "COK",
+    "MUNNAR": "COK",
+    "KOVALAM": "TRV",
+    "OOTY": "CJB",
+    "KODAIKANAL": "CJB",
+    "COORG": "COK",
+    "MADIKERI": "COK",
+    "HAMPI": "VDY",
+    "AURANGABAD": "IXU",
+    "AJANTA": "IXU",
+    "ELLORA": "IXU",
+    "AMRITSAR": "ATQ",
+    "LEH": "IXL",
+    "LADAKH": "IXL",
+    "SRINAGAR": "SXR",
+    "GULMARG": "SXR",
+    "PAHALGAM": "SXR",
+    "PORT BLAIR": "IXZ",
+    "ANDAMAN": "IXZ",
+    "UDAIPUR": "UDR",
+    "JODHPUR": "JDH",
+    "JAISALMER": "JSA",
+    "VARANASI": "VNS",
+    "KHAJURAHO": "HJR",
+    "RAMESWARAM": "IXM",
+    "PONDICHERRY": "PNY",
+    "PUDUCHERRY": "PNY",
+    "MYSORE": "MYQ",
+    "MYSURU": "MYQ",
+}
+
 _CITY_TO_IATA = {
     "BENGALURU": "BLR",
     "BANGALORE": "BLR",
@@ -110,7 +161,10 @@ def _to_iata(val: str) -> str:
     cleaned = (val or "").strip().upper()
     if len(cleaned) == 3 and cleaned.isalpha():
         return cleaned
-    return _CITY_TO_IATA.get(cleaned, cleaned)
+    if cleaned in _CITY_TO_IATA:
+        return _CITY_TO_IATA[cleaned]
+    # no airport of its own -> nearest practical airport, if we know one
+    return _NEAREST_AIRPORT.get(cleaned, cleaned)
 
 
 async def _search_serpapi_flights(
@@ -177,9 +231,17 @@ async def _search_serpapi_flights(
     if not offers:
         return None
 
+    note = None
+    if _to_iata(destination) != (destination or "").strip().upper() and destination:
+        note = (
+            f"Flights land at the nearest airport ({_to_iata(destination)}) — "
+            f"{destination.title()} has none of its own."
+        )
+
     return {
         **meta("serpapi", False),
         "query": {"origin": origin, "destination": destination, "date": date},
+        **({"note": note} if note else {}),
         "offers": offers,
     }
 
