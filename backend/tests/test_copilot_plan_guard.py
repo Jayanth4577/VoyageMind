@@ -10,15 +10,27 @@ def auth_headers(client):
     return {"Authorization": f"Bearer {res.json()['access_token']}"}
 
 
-def make_trip_with_user_activity(client, headers):
-    trip = client.post(
+def make_trip(client, headers):
+    return client.post(
         "/trips",
-        json={"destination_name": "Mahabaleshwar", "start_date": "2026-12-05", "end_date": "2026-12-06"},
+        json={
+            "destination_name": "Mahabaleshwar",
+            "start_date": "2026-12-05",
+            "end_date": "2026-12-06",
+        },
         headers=headers,
     ).json()
+
+
+def make_trip_with_user_activity(client, headers):
+    trip = make_trip(client, headers)
     client.post(
         f"/trips/{trip['id']}/activities",
-        json={"day_id": trip["days"][0]["id"], "name": "My own walk", "category": "ACTIVITY"},
+        json={
+            "day_id": trip["days"][0]["id"],
+            "name": "My own walk",
+            "category": "ACTIVITY",
+        },
         headers=headers,
     )
     return trip
@@ -64,14 +76,14 @@ PLAN = {
 
 def test_copilot_persists_plan_on_empty_trip(client, monkeypatch):
     headers = auth_headers(client)
-    trip = client.post(
-        "/trips",
-        json={"destination_name": "Mahabaleshwar", "start_date": "2026-12-05", "end_date": "2026-12-06"},
-        headers=headers,
-    ).json()
+    trip = make_trip(client, headers)
     mock_master(monkeypatch, PLAN)
 
-    res = client.post(f"/trips/{trip['id']}/copilot", json={"message": "plan my trip"}, headers=headers)
+    res = client.post(
+        f"/trips/{trip['id']}/copilot",
+        json={"message": "plan my trip"},
+        headers=headers,
+    )
     assert res.status_code == 200
     body = res.json()
     assert body["suggestions"] is None
@@ -90,7 +102,11 @@ def test_copilot_requires_approval_on_user_built_trip(client, monkeypatch):
     trip = make_trip_with_user_activity(client, headers)
     mock_master(monkeypatch, PLAN)
 
-    res = client.post(f"/trips/{trip['id']}/copilot", json={"message": "plan my trip"}, headers=headers)
+    res = client.post(
+        f"/trips/{trip['id']}/copilot",
+        json={"message": "plan my trip"},
+        headers=headers,
+    )
     assert res.status_code == 200
     body = res.json()
     sugg = body["suggestions"]

@@ -70,6 +70,8 @@ async def geocode_place(name: str, count: int = 1) -> dict:
             "longitude": r.get("longitude"),
             "country": r.get("country"),
             "admin1": r.get("admin1"),
+            # lets callers size searches to the place (metro vs rural)
+            "population": r.get("population"),
         }
         for r in data.get("results", [])[:count]
     ]
