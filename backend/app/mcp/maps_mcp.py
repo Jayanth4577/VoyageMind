@@ -138,3 +138,26 @@ class MapsMCP:
                 await redis_client.cache_set_json(key, live, TTL_NEARBY)
             return live
         return mock_fallbacks.mock_nearby(latitude, longitude, category)
+
+    async def find_nearby_destinations(
+        self, latitude: float, longitude: float, exclude: str = "", radius_km: int = 40
+    ) -> dict:
+        """Real towns/villages around the destination (day-trip candidates)."""
+        key = f"dests:{latitude:.3f}:{longitude:.3f}:{exclude.lower()}:{radius_km}"
+        cached = await redis_client.cache_get_json(key)
+        if cached is not None:
+            return {**cached, "cached": True}
+        live = await self.client().call_tool(
+            "find_nearby_destinations",
+            {
+                "latitude": latitude,
+                "longitude": longitude,
+                "exclude": exclude,
+                "radius_km": radius_km,
+            },
+        )
+        if _usable(live):
+            if not live.get("is_mock"):
+                await redis_client.cache_set_json(key, live, TTL_NEARBY)
+            return live
+        return mock_fallbacks.mock_nearby_destinations(latitude, longitude, exclude)

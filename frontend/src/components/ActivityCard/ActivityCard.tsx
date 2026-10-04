@@ -10,6 +10,7 @@ const CATEGORY_STYLES: Record<string, string> = {
   MUSEUM: "bg-primarysoft text-primary border-line",
   TRANSPORT: "bg-surface2 text-ink border-line",
   FREE_TIME: "bg-primarysoft text-primary border-line",
+  DAY_TRIP: "bg-accentsoft text-accent border-line",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -19,6 +20,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   MUSEUM: "🏛️",
   TRANSPORT: "🚕",
   FREE_TIME: "☕",
+  DAY_TRIP: "🚗",
 };
 
 interface Props {

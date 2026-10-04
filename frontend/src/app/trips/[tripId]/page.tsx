@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use } from "react";
 import { useEffect, useState } from "react";
 import { copilotApi } from "@/services/copilot";
+import NearbyPlaces from "@/components/NearbyPlaces/NearbyPlaces";
 import { getToken } from "@/services/api";
 import { tripsApi } from "@/services/trips";
 import { formatMoney, type Trip } from "@/types";
@@ -139,6 +140,10 @@ export default function TripOverviewPage({
             <p className="mt-1 text-xl font-bold capitalize">{value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <NearbyPlaces tripId={tripId} days={trip.days.map((d) => ({ id: d.id, day_number: d.day_number }))} />
       </div>
 
       <h2 className="mt-8 text-lg font-semibold">What can you do in this trip?</h2>

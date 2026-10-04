@@ -78,6 +78,14 @@ async def find_nearby_places(
 
 
 @mcp.tool()
+async def find_nearby_destinations(
+    latitude: float, longitude: float, exclude: str = "", radius_km: int = 40
+) -> dict:
+    """Real towns/villages around a destination — day-trip candidates, distance-sorted."""
+    return await maps.find_nearby_destinations(latitude, longitude, exclude, radius_km)
+
+
+@mcp.tool()
 async def get_place_details(osm_id: int) -> dict:
     """Details for a place by its OpenStreetMap node id."""
     return await maps.get_place_details(osm_id)

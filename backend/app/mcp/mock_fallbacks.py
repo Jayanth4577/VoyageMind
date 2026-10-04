@@ -141,3 +141,22 @@ def mock_stays(location: str, check_in: str, check_out: str, guests: int = 2) ->
             )
         ],
     }
+
+
+def mock_nearby_destinations(latitude: float, longitude: float, exclude: str = "") -> dict:
+    return {
+        **_meta(),
+        "note": "DEMO DATA — synthetic nearby destinations (gateway/provider unavailable)",
+        "query": {"latitude": latitude, "longitude": longitude, "exclude": exclude},
+        "results": [
+            {
+                "name": f"Demo Hill Station {i + 1}",
+                "place_type": "town",
+                "latitude": latitude + 0.08 * i,
+                "longitude": longitude + 0.06 * i,
+                "distance_km": round(12.0 * (i + 1), 1),
+                "population": 15000 - i * 2000,
+            }
+            for i in range(3)
+        ],
+    }

@@ -135,7 +135,44 @@ class PlacesAgent:
                     traces,
                 )
 
-        # 3. Free-text search as a fallback when POI sweeps came back thin.
+        # 3. Nearby destinations as day-trip candidates (e.g. Panchgani for
+        # Mahabaleshwar) — real towns from OpenStreetMap, closest first.
+        if latitude is not None and longitude is not None:
+            dests = await execute_tool(
+                "find_nearby_destinations",
+                {"latitude": latitude, "longitude": longitude, "exclude": destination},
+            )
+            traces.append(dests)
+            for town in (dests.result or {}).get("results") or []:
+                name = (town.get("name") or "").strip()
+                lowered = name.lower()
+                if not name or lowered in seen_names:
+                    continue
+                seen_names.add(lowered)
+                km = town.get("distance_km")
+                activities.append(
+                    {
+                        "name": name,
+                        "category": "DAY_TRIP",
+                        "location_name": f"{km} km from {destination}" if km else destination,
+                        "latitude": town.get("latitude"),
+                        "longitude": town.get("longitude"),
+                        "estimated_duration_minutes": 240,
+                        "estimated_cost": 0,
+                        "weather_sensitive": True,
+                        "indoor": False,
+                        "reason": (
+                            f"Nearby {'town' if town.get('place_type') == 'town' else 'village'} "
+                            f"{'~' + str(km) + ' km away' if km else 'nearby'} — worth a "
+                            "half- or full-day trip"
+                        ),
+                        "data_source": (dests.result or {}).get("source", "openstreetmap"),
+                    }
+                )
+                if len([a for a in activities if a["category"] == "DAY_TRIP"]) >= 3:
+                    break
+
+        # 4. Free-text search as a fallback when POI sweeps came back thin.
         if len(activities) < 5 and destination:
             search = await execute_tool(
                 "search_places",

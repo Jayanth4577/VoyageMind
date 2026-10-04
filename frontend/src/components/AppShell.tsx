@@ -19,6 +19,7 @@ const TRIP_NAV = [
   { seg: "copilot", label: "AI Copilot", icon: "🤖" },
   { seg: "budget", label: "Budget", icon: "💰" },
   { seg: "analysis", label: "Analysis", icon: "📊" },
+  { seg: "transport", label: "Travel & Stays", icon: "🚕" },
   { seg: "weather", label: "Weather", icon: "🌦️" },
   { seg: "map", label: "Map", icon: "🗺️" },
   { seg: "risks", label: "Risks & Simulate", icon: "⚠️" },

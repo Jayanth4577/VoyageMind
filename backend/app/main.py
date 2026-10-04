@@ -13,6 +13,7 @@ from app.api import (
     auth,
     budget,
     copilot,
+    discover,
     group,
     itinerary,
     optimization,
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(copilot.router)
     app.include_router(group.router)
+    app.include_router(discover.router)
     app.include_router(analytics.router)
 
     @app.get("/health", tags=["health"])

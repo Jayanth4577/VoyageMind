@@ -354,3 +354,82 @@ async def get_place_details(osm_id: int) -> dict:
         "longitude": float(r["lon"]) if r.get("lon") else None,
         "address": r.get("address", {}),
     }
+
+
+async def find_nearby_destinations(
+    latitude: float, longitude: float, exclude: str = "", radius_km: int = 40, limit: int = 8
+) -> dict:
+    """Real towns/villages around a destination — day-trip candidates.
+
+    Queries OpenStreetMap place nodes (towns first, then villages), excludes
+    the destination itself, sorts by distance, and keeps the most viable
+    day-trip candidates.
+    """
+    exclude_lower = (exclude or "").strip().lower()
+    if is_demo_mode():
+        return {
+            **meta("mock", True),
+            "note": "DEMO DATA — synthetic nearby destinations",
+            "query": {"latitude": latitude, "longitude": longitude, "exclude": exclude},
+            "results": [
+                {
+                    "name": f"Demo Hill Station {i + 1}",
+                    "place_type": "town",
+                    "latitude": latitude + 0.08 * i,
+                    "longitude": longitude + 0.06 * i,
+                    "distance_km": round(12.0 * (i + 1), 1),
+                    "population": 15000 - i * 2000,
+                }
+                for i in range(3)
+            ],
+        }
+    query = f"""
+    [out:json][timeout:25];
+    (
+      node["place"="town"](around:{radius_km * 1000},{latitude},{longitude});
+      node["place"="village"](around:{radius_km * 1000},{latitude},{longitude});
+    );
+    out body {limit * 4};
+    """
+    try:
+        resp = await get_client().post(OVERPASS_URL, data={"data": query})
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": f"nearby destinations failed: {exc}"}
+
+    results = []
+    for el in data.get("elements", []):
+        tags = el.get("tags", {})
+        name = (tags.get("name") or "").strip()
+        if not name or name.lower() == exclude_lower:
+            continue
+        lat, lng = el.get("lat"), el.get("lon")
+        if lat is None:
+            continue
+        place_type = tags.get("place", "village")
+        population = tags.get("population")
+        try:
+            population = int(population) if population else None
+        except ValueError:
+            population = None
+        # Hamlets with no population signal are weak day-trip candidates
+        if place_type == "village" and (population is None or population < 1500):
+            continue
+        results.append(
+            {
+                "name": name,
+                "place_type": place_type,
+                "latitude": lat,
+                "longitude": lng,
+                "distance_km": round(_haversine_km(latitude, longitude, lat, lng), 1),
+                "population": population,
+            }
+        )
+    # Towns first (more to do), then villages; each group nearest-first
+    results.sort(key=lambda r: (0 if r["place_type"] == "town" else 1, r["distance_km"]))
+    return {
+        **meta("overpass", False),
+        "query": {"latitude": latitude, "longitude": longitude, "exclude": exclude},
+        "results": results[:limit],
+    }

@@ -59,6 +59,52 @@ export const tripsApi = {
     api.post<ItineraryDay>(`/trips/${tripId}/days/${dayId}/reorder`, { activity_ids: activityIds }),
 
   budget: (tripId: string) => api.get<BudgetSummary>(`/trips/${tripId}/budget`),
+  nearbyDestinations: (tripId: string) =>
+    api.get<{
+      destination: string;
+      source: string;
+      is_mock: boolean;
+      note?: string;
+      results: {
+        name: string;
+        place_type: string;
+        latitude: number;
+        longitude: number;
+        distance_km: number;
+        population: number | null;
+        maps_url: string;
+      }[];
+    }>(`/trips/${tripId}/nearby-destinations`),
+  transportOptions: (tripId: string) =>
+    api.get<{
+      source: string;
+      is_mock: boolean;
+      note?: string;
+      query: { origin: string; destination: string; date: string };
+      offers: {
+        id: string;
+        airline: string | null;
+        departure_at: string;
+        arrival_at: string;
+        duration_minutes: number | null;
+        price: number | null;
+        currency: string;
+      }[];
+    }>(`/trips/${tripId}/transport-options`),
+  stayOptions: (tripId: string) =>
+    api.get<{
+      source: string;
+      is_mock: boolean;
+      note?: string;
+      guests: number;
+      stays: {
+        id: string;
+        name: string;
+        location_name: string;
+        price_per_night: number | null;
+        rating: number | null;
+      }[];
+    }>(`/trips/${tripId}/stays`),
   budgetItems: (tripId: string) =>
     api.get<
       {
