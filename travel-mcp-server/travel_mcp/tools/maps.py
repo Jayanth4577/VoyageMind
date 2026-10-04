@@ -17,11 +17,16 @@ OVERPASS_URLS = [
 
 
 async def overpass_query(query: str) -> dict:
-    """Run an Overpass query, falling back through the public mirrors."""
+    """Run an Overpass query, falling back through the public mirrors.
+
+    Overpass (especially cold mirrors) routinely takes longer than the shared
+    client's default 10 s cap from datacenter deployments, so these calls get
+    a dedicated 45 s timeout.
+    """
     last_error: Exception | None = None
     for url in OVERPASS_URLS:
         try:
-            resp = await get_client().post(url, data={"data": query})
+            resp = await get_client().post(url, data={"data": query}, timeout=45.0)
             if resp.status_code in (429, 502, 503, 504):
                 last_error = Exception(f"{url} returned {resp.status_code}")
                 continue
@@ -315,7 +320,10 @@ async def find_nearby_places(
     try:
         data = await overpass_query(query)
     except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": f"nearby search failed: {exc}"}
+        return {
+            "status": "error",
+            "error": f"nearby search failed: {type(exc).__name__}: {exc}",
+        }
 
     results = []
     for el in data.get("elements", [])[:limit]:
@@ -415,7 +423,10 @@ async def find_nearby_destinations(
     try:
         data = await overpass_query(query)
     except Exception as exc:  # noqa: BLE001
-        return {"status": "error", "error": f"nearby destinations failed: {exc}"}
+        return {
+            "status": "error",
+            "error": f"nearby destinations failed: {type(exc).__name__}: {exc}",
+        }
 
     results = []
     for el in data.get("elements", []):
