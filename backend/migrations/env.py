@@ -11,7 +11,11 @@ from app import models  # noqa: F401  (register all mappers with Base.metadata)
 # Alembic Config object — DB URL always comes from app settings (DATABASE_URL env),
 # never from a hard-coded value in this file.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+_url = settings.database_url
+if _url.startswith("postgresql://"):
+    # managed-DB dashboards hand out postgresql:// — this project uses psycopg 3
+    _url = _url.replace("postgresql://", "postgresql+psycopg://", 1)
+config.set_main_option("sqlalchemy.url", _url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
