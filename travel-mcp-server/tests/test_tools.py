@@ -1,4 +1,6 @@
 """Gateway tool tests: live providers via mocked HTTP + demo mode."""
+import json
+
 import httpx
 import pytest
 
@@ -381,3 +383,49 @@ def test_city_to_iata_mapping():
     assert transport._to_iata("pune") == "PNQ"
     assert transport._to_iata("BLR") == "BLR"  # already a code
     assert transport._to_iata("nowhere") == "NOWHERE"  # passthrough
+
+
+@pytest.mark.anyio
+async def test_nearby_destinations_falls_back_to_wikipedia(monkeypatch):
+    """Overpass blocked (datacenter IP) -> Wikipedia geosearch serves instead."""
+    import urllib.request
+
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if "overpass" in str(request.url):
+            calls.append("overpass")
+            return httpx.Response(403, text="blocked")
+        raise AssertionError("httpx should not reach Wikipedia (urllib is used)")
+
+    def fake_urlopen(req, timeout=0):
+        calls.append("wiki")
+        body = json.dumps(
+            {
+                "query": {
+                    "geosearch": [
+                        {"title": "Panchgani", "lat": 17.92, "lon": 73.82, "dist": 16500},
+                        {"title": "Mahad", "lat": 18.08, "lon": 73.42, "dist": 28900},
+                        {"title": "Mahabaleshwar", "lat": 17.93, "lon": 73.65, "dist": 800},
+                    ]
+                }
+            }
+        ).encode()
+        import io
+
+        return io.BytesIO(body)
+
+    install_mock_http(monkeypatch, handler)
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.delenv("TRAVEL_MCP_DEMO_MODE", raising=False)
+
+    out = await maps.find_nearby_destinations(17.93, 73.65, exclude="Mahabaleshwar")
+    assert out["source"] == "wikipedia"
+    assert out["is_mock"] is False
+    names = [r["name"] for r in out["results"]]
+    # destination never suggested; in-town notable (Mahabaleshwar <5km) dropped
+    # in favor of the actual out-of-town day trips
+    assert names == ["Panchgani", "Mahad"]  # true-distance order after recompute
+    assert out["results"][0]["distance_km"] < out["results"][1]["distance_km"]
+    assert calls.count("wiki") >= 1
+    assert "overpass" in calls

@@ -1,10 +1,13 @@
 """Maps tools: geocoding (Open-Meteo/Nominatim), routing (OSRM), places (Overpass)."""
 import asyncio
 import itertools
+import logging
 import os
 
-from travel_mcp.tools.common import get_client, is_demo_mode, meta
+from travel_mcp.tools.common import USER_AGENT, get_client, is_demo_mode, meta
 from travel_mcp.tools.weather import _mock_weather  # noqa: F401 (re-exported for tests)
+
+logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org"
 OSRM_URL = os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org")
@@ -403,6 +406,106 @@ async def get_place_details(osm_id: int) -> dict:
     }
 
 
+
+
+WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
+
+
+WIKI_GEOSEARCH_MAX_KM = 10  # MediaWiki hard cap per query
+
+
+def _wikipedia_geosearch_point(latitude: float, longitude: float, radius_km: int, limit: int) -> list[dict]:
+    """One blocking geosearch call (must be <= 10 km). Uses stdlib urllib:
+    Wikimedia blocks some HTTP client TLS fingerprints."""
+    import json
+    import urllib.parse
+    import urllib.request
+
+    params = urllib.parse.urlencode(
+        {
+            "action": "query",
+            "list": "geosearch",
+            "gscoord": f"{latitude}|{longitude}",
+            "gsradius": min(radius_km, WIKI_GEOSEARCH_MAX_KM) * 1000,
+            "gslimit": limit,
+            "format": "json",
+        }
+    )
+    req = urllib.request.Request(
+        f"{WIKIPEDIA_API}?{params}",
+        headers={"User-Agent": f"{USER_AGENT} (github.com/Jayanth4577/VoyageMind)"},
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read())
+    return (data.get("query") or {}).get("geosearch", [])
+
+
+def _wikipedia_geosearch_sync(latitude: float, longitude: float, radius_km: int, limit: int) -> dict:
+    """Blocking Wikipedia geosearch over a wide area via a 9-point grid.
+
+    The API caps each query at 10 km, so wide sweeps tile the area: the
+    center plus 8 compass offsets, deduplicated by title.
+    """
+    raw = _wikipedia_geosearch_point(latitude, longitude, radius_km, limit)
+
+    if radius_km > WIKI_GEOSEARCH_MAX_KM:
+        import math
+
+        step = radius_km * 0.7
+        for bearing in range(0, 360, 45):
+            rad = math.radians(bearing)
+            raw.extend(
+                _wikipedia_geosearch_point(
+                    latitude + step / 111.0 * math.cos(rad),
+                    longitude + step / 111.0 * math.sin(rad),
+                    WIKI_GEOSEARCH_MAX_KM,
+                    max(limit // 2, 3),
+                )
+            )
+
+    results = []
+    seen: set[str] = set()
+    for item in raw:
+        title = (item.get("title") or "").strip()
+        if not title or title.lower() in seen:
+            continue
+        seen.add(title.lower())
+        lat, lon = item.get("lat"), item.get("lon")
+        dist_m = item.get("dist")
+        results.append(
+            {
+                "name": title,
+                "place_type": "wikipedia",
+                "latitude": lat,
+                "longitude": lon,
+                "distance_km": round((dist_m or 0) / 1000, 1),
+                "population": None,
+                "url": f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}",
+            }
+        )
+    results.sort(key=lambda r: r["distance_km"])
+    return {**meta("wikipedia", False), "results": results[:limit]}
+
+
+async def wikipedia_geosearch(
+    latitude: float, longitude: float, radius_m: int = 40000, limit: int = 10
+) -> dict:
+    """Notable places around a coordinate via Wikipedia's geosearch API.
+
+    Datacenter-friendly fallback for Overpass: wiki-documented places are a
+    good proxy for 'most visited' (forts, lakes, hill stations, towns).
+    """
+    import asyncio
+
+    return await asyncio.to_thread(
+        _wikipedia_geosearch_sync,
+        latitude,
+        longitude,
+        max(1, radius_m // 1000),
+        limit,
+    )
+
+
 async def find_nearby_destinations(
     latitude: float, longitude: float, exclude: str = "", radius_km: int = 40, limit: int = 8
 ) -> dict:
@@ -440,11 +543,34 @@ async def find_nearby_destinations(
     """
     try:
         data = await overpass_query(query)
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "status": "error",
-            "error": f"nearby destinations failed: {type(exc).__name__}: {exc}",
-        }
+    except OverpassUnavailableError:
+        # Datacenter IPs are commonly blocked by Overpass; Wikipedia's
+        # geosearch is server-friendly and covers the notable-places need.
+        logger.warning(
+            "Overpass unavailable for nearby destinations at %s,%s — "
+            "falling back to Wikipedia geosearch",
+            latitude,
+            longitude,
+        )
+        wiki = await wikipedia_geosearch(latitude, longitude, radius_km, limit * 3)
+        exclude_lower = exclude.strip().lower()
+        wiki_results = []
+        for r in wiki.get("results") or []:
+            name = (r.get("name") or "").strip()
+            if not name or name.lower() == exclude_lower:
+                continue  # never suggest the destination as its own day trip
+            # ring queries report distance from their own centers — recompute
+            # the true distance to the destination
+            if r.get("latitude") is not None and r.get("longitude") is not None:
+                r["distance_km"] = round(
+                    _haversine_km(latitude, longitude, r["latitude"], r["longitude"]), 1
+                )
+            wiki_results.append(r)
+        # Blend: a couple of in-town notables, then actual out-of-town day trips
+        near = [r for r in wiki_results if r.get("distance_km", 0) < 5][:2]
+        far = [r for r in wiki_results if r.get("distance_km", 0) >= 5][: max(limit - 2, 1)]
+        wiki["results"] = near + far
+        return wiki
 
     results = []
     for el in data.get("elements", []):

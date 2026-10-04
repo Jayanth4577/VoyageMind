@@ -146,7 +146,8 @@ class PlacesAgent:
             for town in (dests.result or {}).get("results") or []:
                 name = (town.get("name") or "").strip()
                 lowered = name.lower()
-                if not name or lowered in seen_names:
+                # day trips must be genuinely out of town (>= 5 km)
+                if not name or lowered in seen_names or (town.get("distance_km") or 0) < 5:
                     continue
                 seen_names.add(lowered)
                 km = town.get("distance_km")
