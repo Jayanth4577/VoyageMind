@@ -47,6 +47,6 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: TRAVEL_MCP_URL
-        value: http://voyagemind-mcp:8001
+        sync: false
       - key: CORS_ORIGINS
         sync: false
